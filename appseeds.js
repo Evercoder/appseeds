@@ -3,7 +3,6 @@
 /*
   - move stuff to prototype
   - allow ASYNC behavior by returning false on enter / exit + StateManager.resume()
-  - how to define state tree?
 */
 
 AppSeeds = {};
@@ -14,7 +13,7 @@ AppSeeds = {};
   
   @param rootState {String} (Optional) a name for the root state; default is 'root'.
 */
-AppSeeds.StateManager = function(stateConnections) {
+AppSeeds.StateManager = function() {
   
   var rootState = 'root';
 
@@ -79,6 +78,21 @@ AppSeeds.StateManager = function(stateConnections) {
     }
   }
   
+  function _getStatePairs(str) {
+    var pairs = [];
+    var tmp = str.split('->');
+    if (tmp.length === 2) {
+      var parentState = tmp[0].trim();
+      var childStates = tmp[1].split(/\s+/);
+      for (var i = 0; i < childStates.length; i++) {
+        if (childStates[i]) pairs.push([parentState, childStates[i]]);
+      }
+    } else {
+      console.warn('String ' + str + ' is an invalid state pair and has been dropped.');
+    }
+    return pairs;
+  }
+  
   /*
     Transition to a new state in the manager.
     Attempting to transition to an inexistent state does nothing (and logs a warning)
@@ -99,13 +113,21 @@ AppSeeds.StateManager = function(stateConnections) {
       // exit to common ancestor
       for (i = 0; i < states.exits.length; i++) {
         currentState = _allStates[states.exits[i]];
-        if (_isFunc(currentState.exit)) currentState.exit.call(this);
+        if (_isFunc(currentState.exit)) {
+          if (currentState.exit.call(this) === false) {
+            // TODO halt
+          }
+        }
       }
       
       // enter to desired state
       for (i = 0; i < states.entries.length; i++) {
         currentState = _allStates[states.entries[i]];
-        if (typeof currentState.enter === 'function') currentState.enter.call(this);
+        if (typeof currentState.enter === 'function') {
+          if (currentState.enter.call(this) === false) {
+            // TODO halt
+          }
+        }
       }
       _currentState = stateName;
       _regenerateCurrentActions();
@@ -120,36 +142,17 @@ AppSeeds.StateManager = function(stateConnections) {
     
     Usage:
     
-    A.  add(parentState, childState, [actions])
-    B.  add(parentState, {
-          childState1: actions1,
-          childState2: actions2,
-          ....
-          childStateN: actionsN
-        });
+    A. add('parentState -> childState');
+    B. add('parentState -> childState1, childState2, ..., childStateN');
+    C. add([
+      'parentState1 -> childState11, childState12, ... childState1N',
+      'parentState2 -> childState21, childState22, ... childState2N',
+      ...
+    ]);
     
-    @param parentState {String} the name of the parent state
-    @param childState {String} the name of the state to add
-    @param actions {Object} the hash of actions for the state
+    @param stateConnection {String/Array} a string describing a relationship between parent state and child state(s). 
+      Additionally can be an array of aforementioned strings.
   */
-  
-  function _getStatePairs(str) {
-    var pairs = [];
-    var tmp = str.split('->');
-    if (tmp.length === 2) {
-      var parentState = tmp[0].trim();
-      var childStates = tmp[1].split(',').map(function(item) {
-        return item.trim();
-      });
-      for (var i = 0; i < childStates.length; i++) {
-        pairs.push([parentState, childStates[i]]);
-      }
-    } else {
-      console.warn('String ' + str + ' is an invalid state pair and has been dropped.');
-    }
-    return pairs;
-  }
-  
   this.add = function(stateConnection) {
     var i, parentState, childState;
     if (typeof stateConnection === 'string') {
@@ -201,13 +204,26 @@ AppSeeds.StateManager = function(stateConnections) {
     }
   };
   
-  this.whenIn = function(stateName, actions) {
-    if (!_allStates[stateName]) {
-      console.warn('State ' + stateName + ' doesn\'t exist. Actions not added.');
-      return;
-    }
-    for (var i in actions) {
-      if (actions.hasOwnProperty(i)) _allStates[stateName][i] = actions[i];
+  /*
+    Attach a set of actions for one or more states.
+    Multiple declarations of the same action for a state will overwrite the existing one.
+    
+    @param stateString {String} a string representing a state name or a list of space-separated state names
+    @actions actions to attach to the state(s)
+  */
+  this.whenIn = function(stateString, actions) {
+    var i, states = stateString.split(/\s+/);
+    for (i = 0; i < states.length; i++) {
+      var stateName = states[i];
+      if (stateName) {
+        if (!_allStates[stateName]) {
+          console.warn('State ' + stateName + ' doesn\'t exist. Actions not added.');
+          return;
+        }
+        for (i in actions) {
+          if (actions.hasOwnProperty(i)) _allStates[stateName][i] = actions[i];
+        }
+      }
     }
     _regenerateCurrentActions();
   };
