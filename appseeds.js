@@ -1,5 +1,11 @@
 /*globals console AppSeeds*/
 
+/*
+  - move stuff to prototype
+  - allow ASYNC behavior by returning false on enter / exit + StateManager.resume()
+  - how to define state tree?
+*/
+
 AppSeeds = {};
 
 /*
@@ -8,9 +14,9 @@ AppSeeds = {};
   
   @param rootState {String} (Optional) a name for the root state; default is 'root'.
 */
-AppSeeds.Rhizome = function(rootState) {
+AppSeeds.StateManager = function(stateConnections) {
   
-  rootState = rootState || 'root';
+  var rootState = 'root';
 
   // current state of the manager
   var _currentState = rootState;
@@ -59,6 +65,20 @@ AppSeeds.Rhizome = function(rootState) {
     return typeof f === 'function';
   }
   
+  function _regenerateCurrentActions() {
+    _currentActions = {};
+    var states = _toRoot(_currentState);
+    for (var i = 0; i < states.length; i++) {
+      var actions = _allStates[states[i]];
+      for (var j in actions) {
+        if (actions.hasOwnProperty(j) && _isFunc(actions[j]) && _reservedMethods.indexOf(j) === -1) {
+          if (!_currentActions[j]) _currentActions[j] = [];
+          _currentActions[j].push(actions[j]);
+        }
+      }
+    }
+  }
+  
   /*
     Transition to a new state in the manager.
     Attempting to transition to an inexistent state does nothing (and logs a warning)
@@ -66,7 +86,7 @@ AppSeeds.Rhizome = function(rootState) {
     
     @param stateName {String} the name of the state to which to transition.
   */
-  this.go = function(stateName) {
+  this.goTo = function(stateName) {
     var state = _allStates[stateName];
     if (state === undefined) {
       console.warn('State ' + stateName + ' not defined');
@@ -80,28 +100,15 @@ AppSeeds.Rhizome = function(rootState) {
       for (i = 0; i < states.exits.length; i++) {
         currentState = _allStates[states.exits[i]];
         if (_isFunc(currentState.exit)) currentState.exit.call(this);
-        for (action in currentState) {
-          if (currentState.hasOwnProperty(action) && _isFunc(currentState[action]) && _reservedMethods.indexOf(action) === -1) {
-            if (_currentActions[action]) {
-              var idx = _currentActions[action].indexOf(currentState[action]);
-              if (idx !== -1) _currentActions[action].splice(idx, 1);
-            }
-          }
-        }
       }
       
       // enter to desired state
       for (i = 0; i < states.entries.length; i++) {
         currentState = _allStates[states.entries[i]];
         if (typeof currentState.enter === 'function') currentState.enter.call(this);
-        for (action in currentState) {
-          if (currentState.hasOwnProperty(action) && _isFunc(currentState[action]) && _reservedMethods.indexOf(action) === -1) {
-            if (!_currentActions[action]) _currentActions[action] = [];
-            _currentActions[action] = [currentState[action]].concat(_currentActions[action]);
-          }
-        }
       }
       _currentState = stateName;
+      _regenerateCurrentActions();
     }
   };
   
@@ -113,32 +120,64 @@ AppSeeds.Rhizome = function(rootState) {
     
     Usage:
     
-    A.  add(parentState, childState, [options])
+    A.  add(parentState, childState, [actions])
     B.  add(parentState, {
-          childState1: options1,
-          childState2: options2,
+          childState1: actions1,
+          childState2: actions2,
           ....
-          childStateN: optionN
+          childStateN: actionsN
         });
     
     @param parentState {String} the name of the parent state
     @param childState {String} the name of the state to add
-    @param options {Object} the hash of actions for the state
+    @param actions {Object} the hash of actions for the state
   */
-  this.add = function(parentState, childState, options) {
-    if (!_allStates[parentState]) {
-      console.warn('State ' + parentState + ' is not included in the tree. State not added.');
-      return;
-    }
-    if (typeof childState === 'object') {
-      for (var state in childState) this.add(parentState, state, childState[state]);
-    } else {
-      if (_allStates[childState]) {
-        console.warn('State ' + childState + ' is already defined. State not added.');
-        return;
+  
+  function _getStatePairs(str) {
+    var pairs = [];
+    var tmp = str.split('->');
+    if (tmp.length === 2) {
+      var parentState = tmp[0].trim();
+      var childStates = tmp[1].split(',').map(function(item) {
+        return item.trim();
+      });
+      for (var i = 0; i < childStates.length; i++) {
+        pairs.push([parentState, childStates[i]]);
       }
-      _allStates[childState] = options || {};
-      _parentStates[childState] = parentState;
+    } else {
+      console.warn('String ' + str + ' is an invalid state pair and has been dropped.');
+    }
+    return pairs;
+  }
+  
+  this.add = function(stateConnection) {
+    var i, parentState, childState;
+    if (typeof stateConnection === 'string') {
+      // string
+      var pairs = _getStatePairs(stateConnection);
+      for (i = 0; i < pairs.length; i++) {
+        parentState = pairs[i][0];
+        childState = pairs[i][1];
+        if (!_allStates[parentState]) {
+          console.warn('State ' + parentState + ' is not included in the tree. State not added.');
+          return;
+        }
+        if (typeof childState === 'object') {
+          for (var state in childState) this.add(parentState, state, childState[state]);
+        } else {
+          if (_allStates[childState]) {
+            console.warn('State ' + childState + ' is already defined. State not added.');
+            return;
+          }
+          _allStates[childState] = {};
+          _parentStates[childState] = parentState;
+        }
+      }
+    } else {
+      // array
+      for (i = 0; i < stateConnection.length; i++) {
+        this.add(stateConnection[i]);
+      }
     }
   };
   
@@ -149,17 +188,28 @@ AppSeeds.Rhizome = function(rootState) {
     
     You can break the chain by returning false in an action.
     
-    Usage: action(actionName, [arg1, [arg2, ..., argN]]);
+    Usage: acti(actionName, [arg1, [arg2, ..., argN]]);
     
     @param actionName {String} the name of the action
     @param arg1 ... argN (optional) additional parameters to send to the action
   */
-  this.action = function() {
+  this.act = function() {
     var actions = _currentActions[arguments[0]] || [];
     for (var i = 0; i < actions.length; i++) {
       // break the chain on `return false;`
       if (actions[i].apply(this, Array.prototype.slice.call(arguments, 1)) === false) break; 
     }
+  };
+  
+  this.whenIn = function(stateName, actions) {
+    if (!_allStates[stateName]) {
+      console.warn('State ' + stateName + ' doesn\'t exist. Actions not added.');
+      return;
+    }
+    for (var i in actions) {
+      if (actions.hasOwnProperty(i)) _allStates[stateName][i] = actions[i];
+    }
+    _regenerateCurrentActions();
   };
   
   /*
