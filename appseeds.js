@@ -1,5 +1,7 @@
 /*globals console AppSeeds*/
 
+AppSeeds = {};
+
 /*
   TODO:
     - integrate with backbone router
@@ -16,11 +18,7 @@
     - add method AppSeeds.StateManager.start(initialState)
     - deal with 'private' properties declared in whenIn() 
       that we probably want to be able to access from the normal actions.
-*/
-
-AppSeeds = {};
-
-/*
+  
   Constructor method for State Manager.
   Usage: App.stateManager = new AppSeeds.StateManager.create();
 */
@@ -277,5 +275,62 @@ AppSeeds.StateManager = {
   }
 };
 
-// TODO
-AppSeeds.PubSub = {};
+
+/**
+  TODO:
+    - namespaced messages
+    
+  Simple PubSub implementation.
+*/
+AppSeeds.PubSub = {
+  
+  create: function(options) {
+    var C = function() {};
+    C.prototype = this;
+    var ps = new C();
+    return ps;
+  },
+  
+  _pubsubEvents: {},
+
+  /**
+    publish an event
+    @param event {String} the event to trigger
+    @param any number of additional params to pass to the methods subscribed to the event.
+  */
+  pub: function(event) {
+    var eventArray = this._pubsubEvents[event] || [];
+    var args = Array.prototype.slice.call(arguments, 1);
+    for (var i = 0; i < eventArray.length; i++) {
+      var subscriber = eventArray[i];
+      subscriber[0].apply(subscriber[1] || this, args);
+    }
+  },
+
+  /**
+    subscribe to an event
+    @param event {String} the event to subscribe to
+    @param method {Function} the method to run when the event is triggered
+    @param thisArg {Optional}{Object} 'this' context for the method
+  */
+  sub: function(event, method, thisArg) {
+    if (typeof event === 'string') {
+      // single event
+      var eventArray = this._pubsubEvents[event];
+      if (eventArray) {
+        eventArray.push([method, thisArg]);
+      } else {
+        this._pubsubEvents[event] = [[method, thisArg]];
+      }
+    } else {
+      // event array
+      for (var i = 0; i < event.length; i++) {
+        this.sub(event[i], method, thisArg);
+      }
+    }
+  },
+
+  unsub: function(event, method) {
+    // TODO
+  }
+};
