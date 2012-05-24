@@ -2,6 +2,7 @@
 
 /*
   TODO:
+    - integrate with backbone router
     - allow whenIn to take a hash of:
         stateString: { actions }
     - allow ASYNC behavior by returning false on enter / exit + StateManager.resume()
@@ -12,7 +13,6 @@
         stateManager.act($(this).data('seed-action'));
       });
       
-    - change constructor to AppSeeds.StateManager.create()?
     - add method AppSeeds.StateManager.start(initialState)
     - deal with 'private' properties declared in whenIn() 
       that we probably want to be able to access from the normal actions.
@@ -36,6 +36,13 @@ AppSeeds.StateManager = {
   // we don't add these to _currentActions, invoked separately on state transitions
   _reservedMethods: ['enter', 'exit'],
   
+  /* Optional Backbone.Router */
+  router: null,
+  
+  onStateChange: function(stateName) {
+    // no-op
+  },
+  
   create: function(options) {
     var C = function() {};
     C.prototype = this;
@@ -51,6 +58,15 @@ AppSeeds.StateManager = {
     if (options.statechart) {
       stateManager.add(options.statechart);
     }
+    
+    if (this._isFunc(options.onStateChange)) {
+      stateManager.onStateChange = options.onStateChange;
+    }
+    
+    if (options.router) {
+      stateManager.router = options.router;
+    }
+    
     return stateManager;
   },
   
@@ -155,6 +171,7 @@ AppSeeds.StateManager = {
       }
       this._currentState = stateName;
       this._regenerateCurrentActions();
+      this.onStateChange(stateName);
     }
   },
   /*
