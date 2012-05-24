@@ -1,8 +1,20 @@
 /*globals console AppSeeds*/
 
 /*
-  - move stuff to prototype
-  - allow ASYNC behavior by returning false on enter / exit + StateManager.resume()
+  TODO:
+    - move maethods to prototype
+    - allow ASYNC behavior by returning false on enter / exit + StateManager.resume()
+    - explore pattern of integration with jQuery:
+    
+      HTML: <a data-seed-action='actionName'>Label</a>  
+      JS: $('[data-seed-action]').on('click', function(e) {
+        stateManager.act($(this).data('seed-action'));
+      });
+      
+    - change constructor to AppSeeds.StateManager.create()?
+    - add method AppSeeds.StateManager.start(initialState)
+    - deal with 'private' properties declared in whenIn() 
+      that we probably want to be able to access from the normal actions.
 */
 
 AppSeeds = {};

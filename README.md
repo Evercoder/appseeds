@@ -61,7 +61,7 @@ Library-agnostic state manager for your schemes & machinations.
 
     stateManager.act('logIn'); // will call the `logIn` action
   
-**What happened:** We invoked a state-specific action. This will look into the tree for actions with the specified name, starting from the current state and up to the root state, executing each. In our case, `logIn` is only defined in the `loggedOut` state.
+**What happened:** We invoked a state-specific action. This will look into the tree for actions with the specified name, starting from the current state and up to the root state, executing each. In our case, `logIn` is only defined in the `loggedOut` state, with the effect of transitioning to the `loggedIn` state. Consequently the login dialog is hidden and the app interface is displayed, courtesy of our `enter`/`exit` actions.
 
 ## AppSeeds.PubSub
 
