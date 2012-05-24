@@ -12,6 +12,8 @@
 
   /*
     TODO:
+      - statechart definition: ability for implied rootstate
+          e.g. 'state1 state2 state3' should be interpreted as 'rootState -> state1 state2 state3'
       - integrate with backbone router
       - allow whenIn to take a hash of:
           stateString: { actions }
