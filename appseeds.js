@@ -279,6 +279,9 @@ AppSeeds.StateManager = {
 /**
   TODO:
     - namespaced messages
+    - allow same argument flexibility as in StateManager 
+      (e.g. sub() should take list of space-separated events rather than array of events)
+    - unsub()
     
   Simple PubSub implementation.
 */
