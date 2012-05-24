@@ -2,7 +2,8 @@
 
 /*
   TODO:
-    - move maethods to prototype
+    - allow whenIn to take a hash of:
+        stateString: { actions }
     - allow ASYNC behavior by returning false on enter / exit + StateManager.resume()
     - explore pattern of integration with jQuery:
     
@@ -21,44 +22,55 @@ AppSeeds = {};
 
 /*
   Constructor method for State Manager.
-  Usage: App.stateManager = new AppSeeds.Rhizome();
-  
-  @param rootState {String} (Optional) a name for the root state; default is 'root'.
+  Usage: App.stateManager = new AppSeeds.StateManager.create();
 */
-AppSeeds.StateManager = function() {
-  
-  var rootState = 'root';
 
-  // current state of the manager
-  var _currentState = rootState;
+AppSeeds.StateManager = {
+  rootState: 'root',
+  _currentState: null, // current state of the manager
+  _currentActions: {}, // current set of actions. key is action name, value is an array of functions.
+  _allStates: {}, // the set of all states with their actions
   
-  // current set of actions. key is action name, value is an array of functions.
-  var _currentActions = {};
-  
-  // the set of all states with their actions
-  var _allStates = {};
-  _allStates[rootState] = {};
-  
-  // the state tree; key is state name, value is name of parent state.
-  var _parentStates = {};
-  _parentStates[rootState] = null;
+  _parentStates: {}, // the state tree; key is state name, value is name of parent state.
   
   // we don't add these to _currentActions, invoked separately on state transitions
-  var _reservedMethods = ['enter', 'exit'];
+  _reservedMethods: ['enter', 'exit'],
+  
+  create: function(options) {
+    var C = function() {};
+    C.prototype = this;
+    var stateManager = new C();
+    
+    // init internals
+    stateManager._allStates[stateManager.rootState] = {};
+    stateManager._parentStates[stateManager.rootState] = null;
+    stateManager._currentState = stateManager.rootState;
+    
+    options = options || {};
+    if (options.init) stateManager._onInit = options.init;
+    if (options.statechart) {
+      stateManager.add(options.statechart);
+    }
+    return stateManager;
+  },
+  
+  init: function() {
+    if (this._isFunc(this._onInit)) this._onInit.call(this);
+  },
   
   // traces path from current state to root state
-  function _toRoot(stateName) {
+  _toRoot: function(stateName) {
     var route = [];
     while(stateName) {
       route.push(stateName);
-      stateName = _parentStates[stateName];
+      stateName = this._parentStates[stateName];
     }
     return route;
-  }
+  },
   
   // finds LCA (Lowest Common Ancestors) between two states
-  function _lca(startState, endState) { 
-    var exits = _toRoot(startState), entries = _toRoot(endState);
+  _lca: function(startState, endState) { 
+    var exits = this._toRoot(startState), entries = this._toRoot(endState);
     for (var i = 0; i < exits.length; i++) {
       var idx = entries.indexOf(exits[i]);
       if (idx !== -1) {
@@ -69,28 +81,28 @@ AppSeeds.StateManager = function() {
       }
     }
     return { exits: exits, entries: entries };
-  }
+  },
   
   // check if argument is a function
-  function _isFunc(f) {
+  _isFunc: function(f) {
     return typeof f === 'function';
-  }
+  },
   
-  function _regenerateCurrentActions() {
-    _currentActions = {};
-    var states = _toRoot(_currentState);
+  _regenerateCurrentActions: function() {
+    this._currentActions = {};
+    var states = this._toRoot(this._currentState);
     for (var i = 0; i < states.length; i++) {
-      var actions = _allStates[states[i]];
+      var actions = this._allStates[states[i]];
       for (var j in actions) {
-        if (actions.hasOwnProperty(j) && _isFunc(actions[j]) && _reservedMethods.indexOf(j) === -1) {
-          if (!_currentActions[j]) _currentActions[j] = [];
-          _currentActions[j].push(actions[j]);
+        if (actions.hasOwnProperty(j) && this._isFunc(actions[j]) && this._reservedMethods.indexOf(j) === -1) {
+          if (!this._currentActions[j]) this._currentActions[j] = [];
+          this._currentActions[j].push(actions[j]);
         }
       }
     }
-  }
+  },
   
-  function _getStatePairs(str) {
+  _getStatePairs: function(str) {
     var pairs = [];
     var tmp = str.split('->');
     if (tmp.length === 2) {
@@ -103,7 +115,7 @@ AppSeeds.StateManager = function() {
       console.warn('String ' + str + ' is an invalid state pair and has been dropped.');
     }
     return pairs;
-  }
+  },
   
   /*
     Transition to a new state in the manager.
@@ -112,20 +124,20 @@ AppSeeds.StateManager = function() {
     
     @param stateName {String} the name of the state to which to transition.
   */
-  this.goTo = function(stateName) {
-    var state = _allStates[stateName];
+  goTo: function(stateName) {
+    var state = this._allStates[stateName];
     if (state === undefined) {
       console.warn('State ' + stateName + ' not defined');
       return;
     }
-    if (_currentState !== stateName) {
-      var states = _lca(_currentState, stateName);
+    if (this._currentState !== stateName) {
+      var states = this._lca(this._currentState, stateName);
       var i, action, currentState;
       
       // exit to common ancestor
       for (i = 0; i < states.exits.length; i++) {
-        currentState = _allStates[states.exits[i]];
-        if (_isFunc(currentState.exit)) {
+        currentState = this._allStates[states.exits[i]];
+        if (this._isFunc(currentState.exit)) {
           if (currentState.exit.call(this) === false) {
             // TODO halt
           }
@@ -134,18 +146,17 @@ AppSeeds.StateManager = function() {
       
       // enter to desired state
       for (i = 0; i < states.entries.length; i++) {
-        currentState = _allStates[states.entries[i]];
+        currentState = this._allStates[states.entries[i]];
         if (typeof currentState.enter === 'function') {
           if (currentState.enter.call(this) === false) {
             // TODO halt
           }
         }
       }
-      _currentState = stateName;
-      _regenerateCurrentActions();
+      this._currentState = stateName;
+      this._regenerateCurrentActions();
     }
-  };
-  
+  },
   /*
     Add a state to the manager.
     All state names need to be unique.
@@ -165,27 +176,27 @@ AppSeeds.StateManager = function() {
     @param stateConnection {String/Array} a string describing a relationship between parent state and child state(s). 
       Additionally can be an array of aforementioned strings.
   */
-  this.add = function(stateConnection) {
+  add: function(stateConnection) {
     var i, parentState, childState;
     if (typeof stateConnection === 'string') {
       // string
-      var pairs = _getStatePairs(stateConnection);
+      var pairs = this._getStatePairs(stateConnection);
       for (i = 0; i < pairs.length; i++) {
         parentState = pairs[i][0];
         childState = pairs[i][1];
-        if (!_allStates[parentState]) {
+        if (!this._allStates[parentState]) {
           console.warn('State ' + parentState + ' is not included in the tree. State not added.');
           return;
         }
         if (typeof childState === 'object') {
           for (var state in childState) this.add(parentState, state, childState[state]);
         } else {
-          if (_allStates[childState]) {
+          if (this._allStates[childState]) {
             console.warn('State ' + childState + ' is already defined. State not added.');
             return;
           }
-          _allStates[childState] = {};
-          _parentStates[childState] = parentState;
+          this._allStates[childState] = {};
+          this._parentStates[childState] = parentState;
         }
       }
     } else {
@@ -194,7 +205,7 @@ AppSeeds.StateManager = function() {
         this.add(stateConnection[i]);
       }
     }
-  };
+  },
   
   /*
     Perform an action within the state manager.
@@ -208,13 +219,13 @@ AppSeeds.StateManager = function() {
     @param actionName {String} the name of the action
     @param arg1 ... argN (optional) additional parameters to send to the action
   */
-  this.act = function() {
-    var actions = _currentActions[arguments[0]] || [];
+  act: function() {
+    var actions = this._currentActions[arguments[0]] || [];
     for (var i = 0; i < actions.length; i++) {
       // break the chain on `return false;`
       if (actions[i].apply(this, Array.prototype.slice.call(arguments, 1)) === false) break; 
     }
-  };
+  },
   
   /*
     Attach a set of actions for one or more states.
@@ -223,28 +234,31 @@ AppSeeds.StateManager = function() {
     @param stateString {String} a string representing a state name or a list of space-separated state names
     @actions actions to attach to the state(s)
   */
-  this.whenIn = function(stateString, actions) {
+  whenIn: function(stateString, actions) {
     var i, states = stateString.split(/\s+/);
     for (i = 0; i < states.length; i++) {
       var stateName = states[i];
       if (stateName) {
-        if (!_allStates[stateName]) {
+        if (!this._allStates[stateName]) {
           console.warn('State ' + stateName + ' doesn\'t exist. Actions not added.');
           return;
         }
         for (i in actions) {
-          if (actions.hasOwnProperty(i)) _allStates[stateName][i] = actions[i];
+          if (actions.hasOwnProperty(i)) this._allStates[stateName][i] = actions[i];
         }
       }
     }
-    _regenerateCurrentActions();
-  };
+    this._regenerateCurrentActions();
+  },
   
   /*
     Get the current state.
     @return {String} current state
   */
-  this.locate = function() {
-    return _currentState;
-  };
+  locate: function() {
+    return this._currentState;
+  }
 };
+
+// TODO
+AppSeeds.PubSub = {};
