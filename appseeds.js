@@ -12,11 +12,7 @@
 
   /*
     TODO:
-      - statechart definition: ability for implied rootstate
-          e.g. 'state1 state2 state3' should be interpreted as 'rootState -> state1 state2 state3'
       - integrate with backbone router
-      - allow whenIn to take a hash of:
-          stateString: { actions }
       - allow ASYNC behavior by returning false on enter / exit + StateManager.resume()
       - explore pattern of integration with jQuery:
     
@@ -28,6 +24,10 @@
       - add method AppSeeds.StateManager.start(initialState)
       - deal with 'private' properties declared in whenIn() 
         that we probably want to be able to access from the normal actions.
+
+      - Conundrum: should probably re-compute currentActions incrementally, with each state transition,
+        so that an enter()/exit() that tries to call an action through act() behaves intuitively.
+        In this case, what to do if an act() method calls goTo? that goto will potentially alter _currentActions.
   
     Constructor method for State Manager.
     Usage: App.stateManager = new AppSeeds.StateManager.create();
@@ -62,24 +62,28 @@
       stateManager._currentState = stateManager.rootState;
     
       options = options || {};
-      if (options.init) stateManager._onInit = options.init;
-      if (options.statechart) {
-        stateManager.add(options.statechart);
+
+      if (typeof options === 'string') {
+        // single option, interpret as 'statechart option'
+        stateManager.add(options);
+      } else {
+        if (options.init) stateManager._onInit = options.init;
+        if (options.statechart) {
+          stateManager.add(options.statechart);
+        }
+        if (this._isFunc(options.onStateChange)) {
+          stateManager.onStateChange = options.onStateChange;
+        }
+        if (options.router) {
+          stateManager.router = options.router;
+        }
       }
-    
-      if (this._isFunc(options.onStateChange)) {
-        stateManager.onStateChange = options.onStateChange;
-      }
-    
-      if (options.router) {
-        stateManager.router = options.router;
-      }
-    
       return stateManager;
     },
   
     init: function() {
       if (this._isFunc(this._onInit)) this._onInit.call(this);
+      return this;
     },
   
     // traces path from current state to root state
@@ -127,16 +131,28 @@
     },
   
     _getStatePairs: function(str) {
-      var pairs = [];
       var tmp = str.split('->');
-      if (tmp.length === 2) {
-        var parentState = tmp[0].trim();
-        var childStates = tmp[1].split(/\s+/);
-        for (var i = 0; i < childStates.length; i++) {
-          if (childStates[i]) pairs.push([parentState, childStates[i]]);
-        }
-      } else {
-        console.warn('String ' + str + ' is an invalid state pair and has been dropped.');
+      var parentState, childStates;
+      switch(tmp.length) {
+        case 0:
+          childStates = [];
+          break;
+        case 1:
+          parentState = this.rootState;
+          childStates = tmp[0].split(/\s+/);
+          break;
+        case 2:
+          parentState = tmp[0].trim();
+          childStates = tmp[1].split(/\s+/);
+          break;
+        default: 
+          console.warn('String ' + str + ' is an invalid state pair and has been dropped.');
+          childStates = [];
+          break;
+      };
+      var pairs = [];
+      for (var i = 0; i < childStates.length; i++) {
+        if (childStates[i]) pairs.push([parentState, childStates[i]]);
       }
       return pairs;
     },
@@ -162,7 +178,7 @@
         for (i = 0; i < states.exits.length; i++) {
           currentState = this._allStates[states.exits[i]];
           if (this._isFunc(currentState.exit)) {
-            if (currentState.exit.call(this) === false) {
+            if (currentState.exit.call(this, this._currentState) === false) {
               // TODO halt
             }
           }
@@ -172,7 +188,7 @@
         for (i = 0; i < states.entries.length; i++) {
           currentState = this._allStates[states.entries[i]];
           if (typeof currentState.enter === 'function') {
-            if (currentState.enter.call(this) === false) {
+            if (currentState.enter.call(this, this._currentState) === false) {
               // TODO halt
             }
           }
@@ -181,6 +197,7 @@
         this._regenerateCurrentActions();
         this.onStateChange(stateName);
       }
+      return this;
     },
     /*
       Add a state to the manager.
@@ -230,6 +247,7 @@
           this.add(stateConnection[i]);
         }
       }
+      return this;
     },
   
     /*
@@ -245,35 +263,73 @@
       @param arg1 ... argN (optional) additional parameters to send to the action
     */
     act: function() {
-      var actions = this._currentActions[arguments[0]] || [];
+      // we use map() to clone the array so any changes to it in the meantime will not affect the flow
+      // e.g. if a state will call goTo() which in turn overwrites _currentActions
+      var actions = (this._currentActions[arguments[0]] || []).map(function(item) { return item; });
       for (var i = 0; i < actions.length; i++) {
         // break the chain on `return false;`
         if (actions[i].apply(this, Array.prototype.slice.call(arguments, 1)) === false) break; 
       }
+      return this;
     },
   
     /*
       Attach a set of actions for one or more states.
       Multiple declarations of the same action for a state will overwrite the existing one.
+
+      USAGE:
+        A. whenIn('stateName', { 
+          action1: function() {},
+          action2: function() {},
+          ...
+        });
+
+        B. whenIn('stateName1 stateName2 ...', {
+          action1: function() {},
+          action2: function() {},
+          ...
+        });
+
+        C. whenIn({
+          "stateName1": {
+            action11: function(){},
+            action12: function(){}
+          },
+          "stateName2 stateName3 ... ": {
+            action21: function() {},
+            action22: function() {}
+          }
+        });
     
-      @param stateString {String} a string representing a state name or a list of space-separated state names
-      @actions actions to attach to the state(s)
+      @param stateString {String/Object} a string representing:
+        - a state name (usage A)
+        - a list of space-separated state names (usage B)      
+        - a hash where the key is a state name / space-separated state names, and the value is the actions object (usage C)
+      @actions actions {Object} list of actions to attach to the state(s)
     */
     whenIn: function(stateString, actions) {
-      var i, states = stateString.split(/\s+/);
-      for (i = 0; i < states.length; i++) {
-        var stateName = states[i];
-        if (stateName) {
-          if (!this._allStates[stateName]) {
-            console.warn('State ' + stateName + ' doesn\'t exist. Actions not added.');
-            return;
-          }
-          for (i in actions) {
-            if (actions.hasOwnProperty(i)) this._allStates[stateName][i] = actions[i];
+      var i;
+      if (typeof stateString === 'object') {
+        for (i in stateString) {
+          this.whenIn(i, stateString[i]);
+        }
+      } else {
+        var states = stateString.split(/\s+/);
+        for (i = 0; i < states.length; i++) {
+          var stateName = states[i];
+          if (stateName) {
+            if (!this._allStates[stateName]) {
+              console.warn('State ' + stateName + ' doesn\'t exist. Actions not added.');
+              return;
+            }
+            for (i in actions) {
+              if (actions.hasOwnProperty(i)) this._allStates[stateName][i] = actions[i];
+            }
           }
         }
       }
       this._regenerateCurrentActions();
+      return this;
     },
   
     /*
@@ -347,4 +403,10 @@
       // TODO
     }
   };
+
+
+  AppSeeds.util = {
+    // TODO: delayAction
+  };
+
 }).call(this);
