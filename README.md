@@ -65,27 +65,41 @@ Library-agnostic state manager for your schemes & machinations.
 
 ### API reference
 
-**.create()** creates a new instance of the state manager.
+**.create()** 
+Creates a new instance of StateManager.
 
 * .create(statechartString)
 * .create(statechartStringArray)
 * .create(options)
 
-**.add()** adds states to the state chart.
+**.add()** 
+Adds states to the state chart.
 
-* .add(statechartString)
-* .add(statechartStringArray)
+* .add(statechartString) Add a series of states to the state chart. Various formats accepted:
+** Single child state: *parentState -> childState* adds `childState` under `parentState` in the state chart.
+** Multiple child states: *parentState -> childState1 childState2*
+** Implied root state: *childState1 childState2* when ommited, the parent state is assumed to be the root state.
+* .add(statechartStringArray) as a shortcut to the above, method allows an array of aforementioned `statechartString`
 
-**.whenIn()** define state-specific actions.
+**.whenIn()** 
+Define state-specific actions.
 
-* .whenIn(stateName, actions)
-* .whenIn(actionsHash)
+* *.whenIn(stateName, actions)* 
+** stateName: string representing state name or a list of space-separated state names.
+** actions: an object containing the functions to associate with the state(s)
+* *.whenIn(actionsHash)* shortcut for declaring actions for multiple states; key is the state name(s), value is the object containing the actions for the state(s)
 
-**.act(actionString)** send an action to the state manager.
+**.act(actionString)** 
+Send an action to the state manager. There are two actions with special meaning:
 
-**.goTo(stateNameString)** transition to a state.
+* *enter()* specifies the behavior when the state manager transitions into the state
+* *exit()* specifies the behavior when the state manager transitions away from the state 
 
-**.locate()** returns the current state.
+**.goTo(stateNameString)** 
+Transition to a state.
+
+**.locate()** 
+Returns the current state.
 
 ---
 
@@ -130,14 +144,18 @@ PubSub allows you application components to talk to each other through well-esta
 
 **.create()** create a new instance of PubSub.
 
-**.sub(topicString, method, [thisArg, [isOnce]])** subscribe to a topic. The method can optionally be tied to a context via the `thisArg` parameter. The `isOnce` boolean controls sub() vs. once() behavior.
+**.sub(topicString, method, [thisArg, [isOnce]])** 
+subscribe to a topic. The method can optionally be tied to a context via the `thisArg` parameter. The `isOnce` boolean controls sub() vs. once() behavior.
 
-**.unsub(topicString, method)** unsubscribe a function from a topic.
+**.unsub(topicString, method)** 
+unsubscribe a function from a topic.
 
-**.once(topicString, method, [thisArg]) ** same as sub(), except the method self-unsubscribes upon successful execution.
+**.once(topicString, method, [thisArg])** 
+same as sub(), except the method self-unsubscribes upon successful execution.
 To signal an unsuccessful execution (and thus prevent the unubscription) return false from your method.
 
-**.pub(topicString, [arg1, [arg2, ... [argN] ... ]])** publish a topic. Method can receive additional arguments to pass to the subscribers
+**.pub(topicString, [arg1, [arg2, ... [argN] ... ]])** 
+publish a topic. Method can receive additional arguments to pass to the subscribers
 
 ---
 
