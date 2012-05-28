@@ -4,6 +4,7 @@
   http://github.com/danburzo/appseeds
 */
 
+/*globals exports define require console*/
 (function(){
   // for CommonJS and the browser
   var AppSeeds = typeof exports !== 'undefined' ? exports : (this.AppSeeds = {});
@@ -57,6 +58,11 @@
       var stateManager = new C();
     
       // init internals
+      stateManager.rootState = 'root';
+      stateManager.router = null;
+      stateManager._currentActions = {};
+      stateManager._parentStates = {};
+      stateManager._allStates = {};
       stateManager._allStates[stateManager.rootState] = {};
       stateManager._parentStates[stateManager.rootState] = null;
       stateManager._currentState = stateManager.rootState;
@@ -149,7 +155,7 @@
           console.warn('String ' + str + ' is an invalid state pair and has been dropped.');
           childStates = [];
           break;
-      };
+      }
       var pairs = [];
       for (var i = 0; i < childStates.length; i++) {
         if (childStates[i]) pairs.push([parentState, childStates[i]]);
@@ -345,9 +351,10 @@
   /**
     TODO:
       - namespaced messages
-      - allow same argument flexibility as in StateManager 
-        (e.g. sub() should take list of space-separated events rather than array of events)
-      - unsub()
+      - once() -- like sub() but method unsub() itself after running
+        - might be a good idea to only unsub when method runs successfully (it accomplishes what it's trying to do)
+          but then again if we only unsub() on return true; or something similar the behavior becomes counter-intuitive.
+          - maybe prevent unsub() with return false;
     
     Simple PubSub implementation.
   */
@@ -357,50 +364,79 @@
       var C = function() {};
       C.prototype = this;
       var ps = new C();
+      ps._pubsubEvents = {};
       return ps;
     },
-  
-    _pubsubEvents: {},
 
     /**
-      publish an event
+      Publish an event.
+      
       @param event {String} the event to trigger
-      @param any number of additional params to pass to the methods subscribed to the event.
+      @param (Optional) any number of additional params to pass to the methods subscribed to the event.
     */
     pub: function(event) {
       var eventArray = this._pubsubEvents[event] || [];
       var args = Array.prototype.slice.call(arguments, 1);
       for (var i = 0; i < eventArray.length; i++) {
         var subscriber = eventArray[i];
-        subscriber[0].apply(subscriber[1] || this, args);
+        var ret = subscriber[0].apply(subscriber[1] || this, args);
+        if (subscriber[2] && ret !== false) {
+          this.unsub(event, subscriber[0]);
+        }
       }
+      return this;
     },
 
     /**
-      subscribe to an event
-      @param event {String} the event to subscribe to
+      Subscribe a function to an event or list of events.
+      
+      @param eventStr {String} the event to subscribe to or list of space-separated events.
       @param method {Function} the method to run when the event is triggered
-      @param thisArg {Optional}{Object} 'this' context for the method
+      @param thisArg (Optional){Object} 'this' context for the method
+      @param isOnce (Optional){Boolean} if true, subscriber will self-unsubscribe after first (successful) execution
     */
-    sub: function(event, method, thisArg) {
-      if (typeof event === 'string') {
-        // single event
-        var eventArray = this._pubsubEvents[event];
+    sub: function(eventStr, method, thisArg, isOnce) {
+      var events = eventStr.split(/\s+/), event, eventArray, i;
+      for (i = 0; i < events.length; i++) {
+        event = events[i];
+        eventArray = this._pubsubEvents[event];
         if (eventArray) {
-          eventArray.push([method, thisArg]);
+          eventArray.push([method, thisArg, isOnce]);
         } else {
-          this._pubsubEvents[event] = [[method, thisArg]];
-        }
-      } else {
-        // event array
-        for (var i = 0; i < event.length; i++) {
-          this.sub(event[i], method, thisArg);
+          this._pubsubEvents[event] = [[method, thisArg, isOnce]];
         }
       }
+      return this;
     },
 
-    unsub: function(event, method) {
-      // TODO
+    /**
+      Unsubscribe a function from an event or list of events.
+      
+      @param eventStr {String} event to unsubscribe from or list of space-separated events.
+      @param method {Function} the method to unsubscribe
+    */
+    unsub: function(eventStr, method) {
+      var events = eventStr.split(/\s+/), event, eventArray, i;
+      var f = function(item) { return item[0] !== method; }; // filter function
+      for (i = 0; i < events.length; i++) {
+        event = events[i];
+        this._pubsubEvents[event] = this._pubsubEvents[event].filter(f);
+      }
+      return this;
+    },
+    
+    /**
+      Subscribe to an event once. (Alias for sub() with isOnce = true)
+      The function will be unsubscribed upon successful exectution.
+      If you want to mark the function execution as unsuccessful 
+      (and thus keep it subscribed), use `return false;`
+    
+      @param eventStr {String} the event to subscribe to or list of space-separated events.
+      @param method {Function} the function to subscribe
+      @param thisArg (Optional) {Object} the context to pass to the function
+    */
+    once: function(eventStr, method, thisArg) {
+      return this.sub(eventStr, method, thisArg, true);
     }
   };
 
@@ -409,4 +445,4 @@
     // TODO: delayAction
   };
 
-}).call(this);
+})(this);
