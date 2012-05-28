@@ -351,10 +351,6 @@
   /**
     TODO:
       - namespaced messages
-      - once() -- like sub() but method unsub() itself after running
-        - might be a good idea to only unsub when method runs successfully (it accomplishes what it's trying to do)
-          but then again if we only unsub() on return true; or something similar the behavior becomes counter-intuitive.
-          - maybe prevent unsub() with return false;
     
     Simple PubSub implementation.
   */
