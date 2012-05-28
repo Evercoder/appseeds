@@ -9,7 +9,7 @@
   // for CommonJS and the browser
   var AppSeeds = typeof exports !== 'undefined' ? exports : (this.AppSeeds = {});
   
-  AppSeeds.version = '0.1';
+  AppSeeds.version = '0.2';
 
   /*
     TODO:
@@ -349,10 +349,8 @@
 
 
   /**
-    TODO:
-      - namespaced messages
-    
     Simple PubSub implementation.
+    Events can be namespaced like this: 'namespace:event'
   */
   AppSeeds.PubSub = {
   
@@ -370,17 +368,32 @@
       @param event {String} the event to trigger
       @param (Optional) any number of additional params to pass to the methods subscribed to the event.
     */
-    pub: function(event) {
-      var eventArray = this._pubsubEvents[event] || [];
-      var args = Array.prototype.slice.call(arguments, 1);
-      for (var i = 0; i < eventArray.length; i++) {
-        var subscriber = eventArray[i];
-        var ret = subscriber[0].apply(subscriber[1] || this, args);
-        if (subscriber[2] && ret !== false) {
-          this.unsub(event, subscriber[0]);
+    pub: function(eventString) {
+      var eventComponents = this._parseEventNamespace(eventString);
+      var eventArray, j, args, subscriber, ret, event;
+      for (var i = 0; i < eventComponents.length; i++) {
+        event = eventComponents[i];
+        eventArray = this._pubsubEvents[event] || [];
+        args = Array.prototype.slice.call(arguments, 1);
+        for (j = 0; j < eventArray.length; j++) {
+          subscriber = eventArray[j];
+          ret = subscriber[0].apply(subscriber[1] || this, args);
+          if (subscriber[2] && ret !== false) {
+            this.unsub(event, subscriber[0]);
+          }
         }
       }
       return this;
+    },
+    
+    _parseEventNamespace: function(event) {
+      var events = [], str = '', ch;
+      for (var i = 0; i < event.length; i++) {
+        if ((ch = event.charAt(i)) === ':') events.push(str);
+        str += ch;
+      }
+      events.push(str);
+      return events;
     },
 
     /**

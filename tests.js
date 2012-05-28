@@ -59,3 +59,39 @@ test('PubSub: sub() to multiple events, once() to multiple events', function() {
   ps.pub('topic1').pub('topic2').pub('topic3');
   ps.pub('topic1').pub('topic2').pub('topic3');
 });
+
+test('PubSub: namespaced events', function() {
+  expect(2);
+  var ps = AppSeeds.PubSub.create();
+  ps.sub('namespace:topic1', function() {
+    ok('here!', 'subscriber to topic1 in namespace');
+  });
+  ps.sub('namespace:topic2', function() {
+    ok('here!', 'subscriber to topic2 in namespace');
+  });
+  ps.sub('namespace', function() {
+    ok('here!', 'subscriber to entire namespace');
+  });
+  ps.sub('namespace2:topic1', function() {
+    ok('here!', 'subscriber to topic1 in different namespace');
+  });
+  ps.pub('namespace:topic1');
+});
+
+test('PubSub: nested namespaces', function() {
+  expect(3);
+  var ps = AppSeeds.PubSub.create();
+  ps.sub('parent:child:event', function() {
+    ok('here!', 'subscribed to specific event');
+  });
+  ps.sub('parent:child', function() {
+    ok('here!', 'subscribed to sub-namespace');
+  });
+  ps.sub('parent', function() {
+    ok('here!', 'subscribed to entire namespace');
+  });
+  ps.sub('child:event', function() {
+    ok('here!', 'subscribed to invalid namespace portion');
+  });
+  ps.pub('parent:child:event');
+});
