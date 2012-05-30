@@ -1,4 +1,4 @@
-/*globals test expect ok strictEqual AppSeeds*/
+/*globals test asyncTest expect ok strictEqual stop start AppSeeds*/
 
 module('AppSeeds');
 
@@ -94,4 +94,47 @@ test('PubSub: nested namespaces', function() {
     ok('here!', 'subscribed to invalid namespace portion');
   });
   ps.pub('parent:child:event');
+});
+
+test('Scheduler sync behavior', function() {
+  expect(1);
+  var schedule = AppSeeds.Scheduler.create(function() {
+    ok('here', 'callback executed!');
+  });
+  schedule.now();
+});
+
+asyncTest('Scheduler async: delay + reset', function() {
+  expect(1);
+  var schedule = AppSeeds.Scheduler.create(function() {
+    ok('here', 'callback executed!');
+  });
+  schedule.delay(200);
+  var i = 0;
+  window.setInterval(function() {
+    if (i++ < 10) schedule.reset();
+  }, 100);
+  
+  window.setInterval(function() {
+    start();
+  }, 1300);
+});
+
+asyncTest('Scheduler async: repeat + reset', function() {
+  expect(5);
+  var schedule = AppSeeds.Scheduler.create(function() {
+    ok('here', 'callback executed!');
+  });
+  schedule.repeat(100);
+  var i = 0;
+  window.setInterval(function() {
+    if (i++ < 6) schedule.reset();
+  }, 50);
+  window.setTimeout(function() {
+    schedule.stop();
+  }, 850);
+  
+  window.setTimeout(function() {
+    start();
+  }, 2000);
 });

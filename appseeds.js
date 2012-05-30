@@ -3,6 +3,43 @@
   AppSeeds can be freely distributed under the MIT license.
   http://github.com/danburzo/appseeds
 */
+/*
+  TODO:
+  StateManager:
+    - integrate with backbone router
+    - allow ASYNC behavior by returning false on enter / exit + StateManager.resume()
+    - explore pattern of integration with jQuery:
+  
+      HTML: <a data-seed-action='actionName'>Label</a>  
+      JS: $('[data-seed-action]').on('click', function(e) {
+        stateManager.act($(this).data('seed-action'));
+      });
+    
+    - add method AppSeeds.StateManager.start(initialState)
+    - deal with 'private' properties declared in whenIn() 
+      that we probably want to be able to access from the normal actions.
+
+    - Conundrum: should probably re-compute currentActions incrementally, with each state transition,
+      so that an enter()/exit() that tries to call an action through act() behaves intuitively.
+      In this case, what to do if an act() method calls goTo? that goto will potentially alter _currentActions.
+
+  PubSub:
+    - schedule() returns scheduled publishing, with following methods:
+      - run(),
+      - delay(timeout)
+      - repeat(interval)
+      - reset()
+      - remove()
+      
+  Scheduler:
+    - each delay() / repeat() pushes a new element in this._timerIds
+      e.g. ['timeout', timerId], ['interval', timerId]
+      reset() will loop through this._timerIds and reset the timeout/interval as fit
+      clear() will do the same.
+      
+      This is to allow multiple parallel schedules on each event.
+*/
+
 
 /*globals exports define require console*/
 (function(){
@@ -12,24 +49,6 @@
   AppSeeds.version = '0.2';
 
   /*
-    TODO:
-      - integrate with backbone router
-      - allow ASYNC behavior by returning false on enter / exit + StateManager.resume()
-      - explore pattern of integration with jQuery:
-    
-        HTML: <a data-seed-action='actionName'>Label</a>  
-        JS: $('[data-seed-action]').on('click', function(e) {
-          stateManager.act($(this).data('seed-action'));
-        });
-      
-      - add method AppSeeds.StateManager.start(initialState)
-      - deal with 'private' properties declared in whenIn() 
-        that we probably want to be able to access from the normal actions.
-
-      - Conundrum: should probably re-compute currentActions incrementally, with each state transition,
-        so that an enter()/exit() that tries to call an action through act() behaves intuitively.
-        In this case, what to do if an act() method calls goTo? that goto will potentially alter _currentActions.
-  
     Constructor method for State Manager.
     Usage: App.stateManager = new AppSeeds.StateManager.create();
   */
@@ -347,7 +366,6 @@
     }
   };
 
-
   /**
     Simple PubSub implementation.
     Events can be namespaced like this: 'namespace:event'
@@ -446,12 +464,87 @@
     */
     once: function(eventStr, method, thisArg) {
       return this.sub(eventStr, method, thisArg, true);
+    },
+    
+    /**
+      Schedule an event to publish.
+      @returns an AppSeeds.Scheduler instance.
+    */
+    schedule: function() {
+      return AppSeeds.Scheduler.create(this.pub, arguments, this);
     }
   };
 
-
-  AppSeeds.util = {
-    // TODO: delayAction
+  /**
+    Scheduler allows you to work with timed callbacks through a simple, crear API.
+  */
+  AppSeeds.Scheduler = {
+    
+    create: function(callback, args, thisArg) {
+      var C = function() {};
+      C.prototype = this;
+      var schedule = new C();
+      schedule.callback = callback;
+      schedule.args = args;
+      schedule.thisArg = thisArg || this;
+      schedule.timeout = null;
+      schedule.interval = null;
+      schedule._timerId = null;
+      return schedule;
+    },
+    
+    /**
+      Publish scheduled event immediately.
+    */
+    now: function() {
+      this.callback.apply(this.thisArg, this.args);
+      return this;
+    },
+    
+    /**
+      Reset the timer on the event.
+    */
+    reset: function(forever) {
+      if (this.timeout) {
+        window.clearTimeout(this._timerId);
+        if (!forever) this.delay(this.timeout);
+      } else if (this.interval) {
+        window.clearInterval(this._timerId);
+        if (!forever) this.repeat(this.interval);
+      }
+      return this;
+    },
+    
+    /**
+      Delay the publication with a number of milliseconds.
+    */
+    delay: function(timeout) {
+      var that = this;
+      this.timeout = timeout;
+      this.interval = null;
+      this._timerId = window.setTimeout(function() { that.now(); }, timeout);
+      return this;
+    },
+    
+    /**
+      Repeat the publication of the event each N milliseconds.
+    */
+    repeat: function(interval) {
+      var that = this;
+      this.interval = interval;
+      this.timeout = null;
+      this._timerId = window.setInterval(function() { that.now(); }, interval);
+      return this;
+    },
+    
+    /**
+      Cancel the scheduled publication. 
+      Alias for .reset(forever = true)
+    */
+    stop: function() {
+      this.reset(true);
+      return this;
+    }
   };
-
+  
 })(this);
