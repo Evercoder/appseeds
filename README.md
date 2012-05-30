@@ -159,6 +159,52 @@ publish a topic. Method can receive additional arguments to pass to the subscrib
 
 ---
 
-## AppSeeds.util
+## AppSeeds.Scheduler
 
-Coming soon!
+Scheduler is a module for mananging timed events that provides a wrapper for `window.setTimeout` & `window.setInterval`, with handy methods to delay, repeat, reset and cancel events.
+
+### Quick start guide
+
+#### 1. Make a schedule
+
+    var schedule = AppSeeds.Scheduler.create(function() {
+      // do something
+    });
+
+**What happened:** The scheduler has created a task but it has not executed the function yet.
+
+#### 2. Delay the execution
+
+    schedule.delay(1000); // wait a sec, then run
+    
+**What happened:** The function was executed after a 1 second delay.
+
+#### Extra credit: integrate with PubSub
+
+    // instead of 
+    ps.pub('event', arg1, arg2);
+    
+    // you can do this
+    ps.schedule('event', arg1, arg2).delay(1000);
+    
+**What happened:** Instead of publishing the event right away, we schedule it to run after 1 second.
+
+### API reference
+
+**.create(callback, [args, [thisArg]])** create a scheduled task. Returns an instance of AppSeeds.Scheduler.
+
+**.now()** Execute the scheduled task immediately.
+
+**.delay(timeout)** Execute the scheduled task after a number of milliseconds. (Equivalent of window.setTimeout)
+
+**.repeat(interval)** Execute the scheduled task repeatedly with an interval of x milliseconds. (Equivalent of window.setInterval)
+
+**.reset()** Re-start the timers for the scheduled task, effectively postponing the task.
+
+**.cancel()** Remove all timers for the scheduled task.
+
+
+### Use cases
+
+* Periodical auto-save mechanism
+* Text box with delayed auto-search

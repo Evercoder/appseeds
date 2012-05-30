@@ -1,5 +1,5 @@
 /**
-  AppSeeds 0.1 (c) 2012 Dan Burzo
+  AppSeeds 0.3 (c) 2012 Dan Burzo
   AppSeeds can be freely distributed under the MIT license.
   http://github.com/danburzo/appseeds
 */
@@ -22,14 +22,6 @@
     - Conundrum: should probably re-compute currentActions incrementally, with each state transition,
       so that an enter()/exit() that tries to call an action through act() behaves intuitively.
       In this case, what to do if an act() method calls goTo? that goto will potentially alter _currentActions.
-
-  PubSub:
-    - schedule() returns scheduled publishing, with following methods:
-      - run(),
-      - delay(timeout)
-      - repeat(interval)
-      - reset()
-      - remove()
       
   Scheduler:
     - each delay() / repeat() pushes a new element in this._timerIds
@@ -46,7 +38,7 @@
   // for CommonJS and the browser
   var AppSeeds = typeof exports !== 'undefined' ? exports : (this.AppSeeds = {});
   
-  AppSeeds.version = '0.2';
+  AppSeeds.version = '0.3';
 
   /*
     Constructor method for State Manager.
