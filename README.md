@@ -168,7 +168,10 @@ same as sub(), except the method self-unsubscribes upon successful execution.
 To signal an unsuccessful execution (and thus prevent the unubscription) return false from your method.
 
 **.pub(topicString, [arg1, [arg2, ... [argN] ... ]])** 
-publish a topic. Method can receive additional arguments to pass to the subscribers
+publish a topic. Method can receive additional arguments to pass to the subscribers.
+
+**.schedule(topicString, [arg1, [arg2, ... [argN] ... ]])** 
+same syntax as *.pub()*, schedule an event. Returns an *AppSeeds.Scheduler* instance.
 
 ---
 
