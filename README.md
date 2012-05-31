@@ -212,12 +212,30 @@ Scheduler is a module for mananging timed events that provides a wrapper for `wi
 
 **.repeat(interval)** Execute the scheduled task repeatedly with an interval of x milliseconds. (Equivalent of window.setInterval)
 
-**.reset()** Re-start the timers for the scheduled task, effectively postponing the task.
+**.reset()** Re-start the timers for the scheduled task, effectively postponing the task. Also serves to resuscitate a stopped task.
 
-**.cancel()** Remove all timers for the scheduled task.
+**.stop()** Remove all timers for the scheduled task.
 
 
 ### Use cases
 
-* Periodical auto-save mechanism
-* Text box with delayed auto-search
+#### Periodical auto-save mechanism
+
+    var save = function() { /* perform save */ };
+    var autoSave = AppSeeds.Scheduler.create(save).interval(30 * 1000); // run auto-save each 30 seconds
+    var manualSave = function() {
+      save(); // save
+      autoSave.reset(); // since we manually saved, reset the timer
+    }
+
+#### Input with delayed auto-search
+
+    var search = function() { 
+      var val = $('input').val();
+      // perform search based on value
+    }
+    var autoSearch = AppSeeds.Scheduler.create(search).delay(300).stop(); // run after 300 ms, but not now
+    $('input').on({
+      'focus keyup': autoSearch.reset,
+      'blur': autoSearch.stop
+    });
