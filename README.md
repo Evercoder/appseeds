@@ -101,6 +101,19 @@ Transition to a state.
 **.locate()** 
 Returns the current state.
 
+### StateManager + jQuery: an example pattern
+
+**Problem:** You want your UI elements to trigger actions in the state manager.
+**Solution:** Add a DOM identifier for elements you want to hook up with the state manager.
+
+      <!-- in your HTML -->
+      <a data-seed-action='actionName'>Label</a>  
+      
+      // in your JavaScript
+      $(document).on('click', '[data-seed-action]', function(e) {
+        stateManager.act($(this).data('seed-action'));
+      });
+
 ---
 
 ## AppSeeds.PubSub
