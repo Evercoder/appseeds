@@ -1,4 +1,4 @@
-/*globals test asyncTest expect ok strictEqual stop start AppSeeds*/
+/*globals test asyncTest expect ok strictEqual stop start AppSeeds Seeds*/
 
 module('AppSeeds');
 
@@ -102,6 +102,20 @@ test("StateManager: defaultSubstate for root", function() {
   sm.goTo('state1').goTo('root');
 
   strictEqual(sm.locate(), 'state2', 'transitioned to state2');
+});
+
+test("StateManager: when(string, function) interpreted as stay() function", function() {
+  expect(1);
+  var sm = Seeds.StateManager.create('state1 state2 state3');
+  sm.add('state1 -> state11 state12 state13');
+  sm.add('state11 -> state111 state112 state113');
+  
+  sm.when('state11', function() {
+    ok('here!', 'im in state11');
+  });
+  sm.goTo('state111');
+  sm.goTo('state1');
+  sm.goTo('state11');
 });
 
 test('PubSub basic use case', function() {

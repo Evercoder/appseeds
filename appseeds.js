@@ -343,12 +343,17 @@
             action22: function() {}
           }
         });
+        
+        D. when('stateName1', function() {
+          // interpreted as `stay` function
+        });
     
       @param stateString {String/Object} a string representing:
         - a state name (usage A)
         - a list of space-separated state names (usage B)      
         - a hash where the key is a state name / space-separated state names, and the value is the actions object (usage C)
-      @param actions {Object} list of actions to attach to the state(s)
+      @param actions {Object/Function} list of actions to attach to the state(s)
+        - Note: if function, will be interpreted as `stay`
     */
     when: function(stateString, actions) {
       var i;
@@ -365,6 +370,12 @@
               console.warn('State ' + stateName + ' doesn\'t exist. Actions not added.');
               return;
             }
+            
+            // interpret single function as `stay` method
+            if (this._isFunc(actions)) {
+              actions = { stay: actions };
+            }
+            
             for (i in actions) {
               if (actions.hasOwnProperty(i)) this._allStates[stateName][i] = actions[i];
             }
