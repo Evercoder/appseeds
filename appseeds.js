@@ -13,11 +13,7 @@
       that we probably want to be able to access from the normal actions.
     - Conundrum: should probably re-compute currentActions incrementally, with each state transition,
       so that an enter()/exit() that tries to call an action through act() behaves intuitively.
-      In this case, what to do if an act() method calls goTo? that goto will potentially alter _currentActions.
-    - StateManager.when with signature:
-       when('stateName', function() {}) function to be interpreted as `stay`
-  BUGS:
-    - namespacing ":event" (empty string at beginning)
+      In this case, what to do if an act() method calls go()? that go() will potentially alter _currentActions.
     - can't apply defaultSubstate to root (should happen on init()?)
 
 
@@ -187,7 +183,7 @@
     
       @param stateName {String} the name of the state to which to transition.
     */
-    goTo: function(stateName) {
+    go: function(stateName) {
       var state = this._allStates[stateName];
       if (state === undefined) {
         console.warn('State ' + stateName + ' not defined');
@@ -228,7 +224,7 @@
 
         // go to default substate
         var defaultSubstate = this._defaultSubstates[this._currentState];
-        if (defaultSubstate) this.goTo(defaultSubstate);
+        if (defaultSubstate) this.go(defaultSubstate);
       }
       return this;
     },
@@ -299,7 +295,7 @@
     */
     act: function() {
       // we use map() to clone the array so any changes to it in the meantime will not affect the flow
-      // e.g. if a state will call goTo() which in turn overwrites _currentActions
+      // e.g. if a state will call go() which in turn overwrites _currentActions
       var actions = (this._currentActions[arguments[0]] || []).map(function(item) { return item; });
       for (var i = 0; i < actions.length; i++) {
         // break the chain on `return false;`
@@ -314,6 +310,14 @@
     whenIn: function() {
       console.info('Deprecated: Use when() instead of whenIn()');
       return this.when.apply(this, arguments);
+    },
+    
+    /**
+      @deprecated 
+    */
+    goTo: function() {
+      console.info('Deprecated: Use go() instead of goTo()');
+      return this.go.apply(this, arguments);
     },
   
     /*
@@ -423,13 +427,15 @@
       var eventArray, j, args, subscriber, ret, event;
       for (var i = 0; i < eventComponents.length; i++) {
         event = eventComponents[i];
-        eventArray = this._pubsubEvents[event] || [];
-        args = Array.prototype.slice.call(arguments, 1);
-        for (j = 0; j < eventArray.length; j++) {
-          subscriber = eventArray[j];
-          ret = subscriber[0].apply(subscriber[1] || this, args);
-          if (subscriber[2] && ret !== false) {
-            this.unsub(event, subscriber[0]);
+        eventArray = this._pubsubEvents[event];
+        if (eventArray) {
+          args = Array.prototype.slice.call(arguments, 1);
+          for (j = 0; j < eventArray.length; j++) {
+            subscriber = eventArray[j];
+            ret = subscriber[0].apply(subscriber[1] || this, args);
+            if (subscriber[2] && ret !== false) {
+              this.unsub(event, subscriber[0]);
+            }
           }
         }
       }

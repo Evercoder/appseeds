@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>AppSeeds performance</title>
+    <script type='text/javascript' src='appseeds.js'></script>
+    <script type='text/javascript' src='../amplify/core/amplify.core.js'></script>
+    <script type='text/javascript' src='../pubsubjs/src/pubsub.js'></script>
+    <script type='text/javascript' src='../benchmark/benchmark.js'></script>
+    <script type='text/javascript'>
+      var suite = new Benchmark.Suite;
+      suite
+      .add('AmplifyJS.PubSub', function() {
+        amplify.publish('event', 'hello');
+      }, {
+        setup: function() {
+          var c = this.count;
+          while (c--) amplify.subscribe('event', function(){});
+        }
+      })
+      .add('MRoderick.pubsubJS', function() {
+        PubSub.publishSync('event', 'hello');
+      }, {
+        setup: function() {
+          var c = this.count;
+          while (c--) PubSub.subscribe('event', function(){});
+        }
+      })
+      .add('AppSeeds.PubSub', function() {
+        ps.pub('event', 'hello');
+      }, {
+        setup: function() {
+          var ps = AppSeeds.PubSub.create();
+          var c = this.count;
+          while (c--) ps.sub('event', function(){});
+        }
+      })
+      // add listeners
+      .on('cycle', function(event) {
+        console.log(String(event.target));
+      })
+      .on('complete', function() {
+        console.log('Fastest is ' + this.filter('fastest').pluck('name'));
+      })
+      // run async
+      .run({ 'async': true });
+    </script>
+  </head>
+  
+  <body>
+    
+  </body>
+</html>
