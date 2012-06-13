@@ -1,5 +1,5 @@
 /**
-  AppSeeds 0.3 (c) 2012 Dan Burzo
+  AppSeeds (c) 2012 Dan Burzo
   AppSeeds can be freely distributed under the MIT license.
   http://github.com/danburzo/appseeds
 */
@@ -17,7 +17,6 @@
     - StateManager.when with signature:
        when('stateName', function() {}) function to be interpreted as `stay`
   BUGS:
-    - can't init statemanager with single array parameter
     - namespacing ":event" (empty string at beginning)
     - can't apply defaultSubstate to root (should happen on init()?)
 
@@ -51,6 +50,8 @@
   // reference: http://semver.org/
   AppSeeds.version = '0.3.1';
 
+  // polyfills
+  if(!Array.isArray) Array.isArray = function (vArg) { return Object.prototype.toString.call(vArg) === "[object Array]"; };
 
   AppSeeds.StateManager = {
     rootState: 'root',
@@ -69,11 +70,11 @@
       Usage: MyApp.stateManager = new AppSeeds.StateManager.create();
       
       @param options {String/Array/Object}
-        - when string/array, interpreted as 'statechart' option
+        - when string/array, interpreted as 'states' option
         - when hash, the following options are available:
           - init {Function} what to execute when we call stateManager.init()
-          - statechart {String/Array} a string or list of strings that describe the state chart structure
-            (convenience method equivalent to .add(statechart))
+          - states {String/Array} a string or list of strings that describe the state chart structure
+            (convenience method equivalent to .add(states))
     */
     create: function(options) {
       var C = function() {};
@@ -92,13 +93,12 @@
     
       options = options || {};
 
-      if (typeof options === 'string') {
-        // single option, interpret as 'statechart option'
+      if (typeof options === 'string' || Array.isArray(options)) {
         stateManager.add(options);
       } else {
         stateManager._onInit = options.init;
-        if (options.statechart) {
-          stateManager.add(options.statechart);
+        if (options.states) {
+          stateManager.add(options.states);
         }
       }
       return stateManager;
@@ -587,8 +587,8 @@
   AppSeeds.DelegateSupport = {
     delegate: null,
     del: function(name) {
-      return delegate && typeof delegate[name] === 'function' ? 
-        delegate[name].apply(this, Array.prototype.slice.call(arguments, 1)) : true;
+      return this.delegate && typeof this.delegate[name] === 'function' ? 
+        this.delegate[name].apply(this, Array.prototype.slice.call(arguments, 1)) : true;
     }
   };
   
