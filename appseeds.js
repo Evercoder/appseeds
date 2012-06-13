@@ -3,19 +3,13 @@
   AppSeeds can be freely distributed under the MIT license.
   http://github.com/danburzo/appseeds
 */
+
 /*
   TODO:
   General:
     - samples/usecases in jsfiddle
   StateManager:
     - allow ASYNC behavior by returning false on enter / exit + StateManager.resume()
-    - deal with 'private' properties declared in whenIn() 
-      that we probably want to be able to access from the normal actions.
-    - Conundrum: should probably re-compute currentActions incrementally, with each state transition,
-      so that an enter()/exit() that tries to call an action through act() behaves intuitively.
-      In this case, what to do if an act() method calls go()? that go() will potentially alter _currentActions.
-    - can't apply defaultSubstate to root (should happen on init()?)
-
 
   USE-CASE:
     - PubSub + multiple statemanager
@@ -43,8 +37,8 @@
   // for CommonJS and the browser
   var AppSeeds = typeof exports !== 'undefined' ? exports : (this.AppSeeds = this.Seeds = {});
   
-  // reference: http://semver.org/
-  AppSeeds.version = '0.3.1';
+  // Semantic versioning; see http://semver.org/
+  AppSeeds.version = '0.4.0';
 
   // polyfills
   if(!Array.isArray) Array.isArray = function (vArg) { return Object.prototype.toString.call(vArg) === "[object Array]"; };
@@ -52,15 +46,11 @@
   AppSeeds.StateManager = {
     rootState: 'root',
     _currentState: null, // current state of the manager
-    _currentActions: {}, // current set of actions. key is action name, value is an array of functions.
     _allStates: {}, // the set of all states with their actions
   
     _parentStates: {}, // the state tree; key is state name, value is name of parent state.
     _defaultSubstates: {}, // the default substate for each state
   
-    // we don't add these to _currentActions, invoked separately on state transitions
-    _reservedMethods: ['enter', 'exit', 'ready'],
-
     /**
       Create a new instance of State Manager.
       Usage: MyApp.stateManager = new AppSeeds.StateManager.create();
@@ -79,14 +69,14 @@
     
       // init internals
       stateManager.rootState = 'root';
-      stateManager._currentActions = {};
       stateManager._parentStates = {};
       stateManager._allStates = {};
       stateManager._defaultSubstates = {};
-      stateManager._allStates[stateManager.rootState] = {};
+      stateManager._allStates[stateManager.rootState] = stateManager.context = {};
       stateManager._parentStates[stateManager.rootState] = null;
       stateManager._currentState = stateManager.rootState;
     
+
       options = options || {};
 
       if (typeof options === 'string' || Array.isArray(options)) {
@@ -135,20 +125,6 @@
       return typeof f === 'function';
     },
   
-    _regenerateCurrentActions: function() {
-      this._currentActions = {};
-      var states = this._toRoot(this._currentState);
-      for (var i = 0; i < states.length; i++) {
-        var actions = this._allStates[states[i]];
-        for (var j in actions) {
-          if (actions.hasOwnProperty(j) && this._isFunc(actions[j]) && this._reservedMethods.indexOf(j) === -1) {
-            if (!this._currentActions[j]) this._currentActions[j] = [];
-            this._currentActions[j].push(actions[j]);
-          }
-        }
-      }
-    },
-  
     _getStatePairs: function(str) {
       var tmp = str.split('->');
       var parentState, childStates;
@@ -191,13 +167,13 @@
       }
       if (this._currentState !== stateName) {
         var states = this._lca(this._currentState, stateName);
-        var i, action, currentState;
+        var i, action;
       
         // exit to common ancestor
         for (i = 0; i < states.exits.length; i++) {
-          currentState = this._allStates[states.exits[i]];
-          if (this._isFunc(currentState.exit)) {
-            if (currentState.exit.call(this, this._currentState) === false) {
+          this.context = this._allStates[states.exits[i]];
+          if (this._isFunc(this.context.exit)) {
+            if (this.context.exit.call(this) === false) {
               // TODO halt
             }
           }
@@ -205,21 +181,20 @@
       
         // enter to desired state
         for (i = 0; i < states.entries.length; i++) {
-          currentState = this._allStates[states.entries[i]];
-          if (this._isFunc(currentState.enter)) {
-            if (currentState.enter.call(this, this._currentState) === false) {
+          this.context = this._allStates[states.entries[i]];
+          if (this._isFunc(this.context.enter)) {
+            if (this.context.enter.call(this) === false) {
               // TODO halt
             }
           }
         }
 
         this._currentState = stateName;
-        this._regenerateCurrentActions();
         
         // execute 'stay'
-        currentState = this._allStates[this._currentState];
-        if (this._isFunc(currentState.stay)) {
-          currentState.stay.call(this);
+        this.context = this._allStates[this._currentState];
+        if (this._isFunc(this.context.stay)) {
+          this.context.stay.call(this);
         }
 
         // go to default substate
@@ -294,14 +269,20 @@
       @param (optional) arg1 ... argN - additional parameters to send to the action
     */
     act: function() {
-      // we use map() to clone the array so any changes to it in the meantime will not affect the flow
-      // e.g. if a state will call go() which in turn overwrites _currentActions
-      var actions = (this._currentActions[arguments[0]] || []).map(function(item) { return item; });
-      for (var i = 0; i < actions.length; i++) {
-        // break the chain on `return false;`
-        if (actions[i].apply(this, Array.prototype.slice.call(arguments, 1)) === false) break; 
-      }
+      // regenerate context to current state after bubbling up
+      this.context = this._act(this._currentState, arguments);
       return this;
+    },
+
+    /* 
+      act recursively until action returns false; 
+    */
+    _act: function(state, args) {
+      this.context = this._allStates[state], action = this.context[args[0]];
+      // break the chain on `return false;`
+      if (this._isFunc(action) && action.apply(this, Array.prototype.slice.call(args, 1)) === false) return;
+      if (this._parentStates[state]) this._act(this._parentStates[state], args);   
+      return this.context;    
     },
 
     /**
@@ -363,7 +344,7 @@
       var i;
       if (typeof stateString === 'object') {
         for (i in stateString) {
-          this.whenIn(i, stateString[i]);
+          this.when(i, stateString[i]);
         }
       } else {
         var states = stateString.split(/\s+/);
@@ -386,7 +367,6 @@
           }
         }
       }
-      this._regenerateCurrentActions();
       return this;
     },
   
@@ -597,7 +577,10 @@
         window.clearInterval(this._timerId);
       }
       return this;
-    }
+    },
+
+    // TODO [DB]
+    destroy: function() {}
   };
 
   // TODO [DB]
@@ -607,6 +590,10 @@
       return this.delegate && typeof this.delegate[name] === 'function' ? 
         this.delegate[name].apply(this, Array.prototype.slice.call(arguments, 1)) : true;
     }
+  };
+
+  AppSeeds.Binder = {
+    // TODO [DB] DOM Binder of sorts.
   };
   
 })(this);
