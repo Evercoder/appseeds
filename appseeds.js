@@ -5,23 +5,51 @@
 */
 /*
   TODO:
+  General:
+    - samples/usecases in jsfiddle
   StateManager:
-    - integrate with backbone router
     - allow ASYNC behavior by returning false on enter / exit + StateManager.resume()
     - deal with 'private' properties declared in whenIn() 
       that we probably want to be able to access from the normal actions.
     - Conundrum: should probably re-compute currentActions incrementally, with each state transition,
       so that an enter()/exit() that tries to call an action through act() behaves intuitively.
       In this case, what to do if an act() method calls goTo? that goto will potentially alter _currentActions.
+    - StateManager.when with signature:
+       when('stateName', function() {}) function to be interpreted as `stay`
+  BUGS:
+    - can't init statemanager with single array parameter
+    - namespacing ":event" (empty string at beginning)
+    - can't apply defaultSubstate to root (should happen on init()?)
+
+
+  USE-CASE:
+    - PubSub + multiple statemanager
+    var statePS = Seeds.PubSub.create();
+    statePS.proxy = function(stateManager) {
+      statePS.sub(stateManager.act, stateManager); // todo implement nicely
+      return this;
+    };
+
+    ps.bind = function(ps2) {
+      ps.sub(ps2.pub, ps2);
+      ps2.sub(ps.pub, ps); // todo race conditions
+    }
+
+    ps.repeat = function(ps2) {
+      ps2.sub(this.pub, this);
+    }
+
+    statePS.proxy(sm1).proxy(sm2).proxy(sm3);
 */
 
 
 /*globals exports define require console*/
 (function(){
   // for CommonJS and the browser
-  var AppSeeds = typeof exports !== 'undefined' ? exports : (this.AppSeeds = {});
+  var AppSeeds = typeof exports !== 'undefined' ? exports : (this.AppSeeds = this.Seeds = {});
   
-  AppSeeds.version = '0.3';
+  // reference: http://semver.org/
+  AppSeeds.version = '0.3.1';
 
 
   AppSeeds.StateManager = {
@@ -31,14 +59,11 @@
     _allStates: {}, // the set of all states with their actions
   
     _parentStates: {}, // the state tree; key is state name, value is name of parent state.
+    _defaultSubstates: {}, // the default substate for each state
   
     // we don't add these to _currentActions, invoked separately on state transitions
-    _reservedMethods: ['enter', 'exit'],
-  
-    onStateChange: function(stateName) {
-      // no-op
-    },
-  
+    _reservedMethods: ['enter', 'exit', 'ready'],
+
     /**
       Create a new instance of State Manager.
       Usage: MyApp.stateManager = new AppSeeds.StateManager.create();
@@ -46,7 +71,6 @@
       @param options {String/Array/Object}
         - when string/array, interpreted as 'statechart' option
         - when hash, the following options are available:
-          - onStateChange {Function} a callback for state transitions; receives one parameter, the name of the new state
           - init {Function} what to execute when we call stateManager.init()
           - statechart {String/Array} a string or list of strings that describe the state chart structure
             (convenience method equivalent to .add(statechart))
@@ -61,6 +85,7 @@
       stateManager._currentActions = {};
       stateManager._parentStates = {};
       stateManager._allStates = {};
+      stateManager._defaultSubstates = {};
       stateManager._allStates[stateManager.rootState] = {};
       stateManager._parentStates[stateManager.rootState] = null;
       stateManager._currentState = stateManager.rootState;
@@ -71,12 +96,9 @@
         // single option, interpret as 'statechart option'
         stateManager.add(options);
       } else {
-        if (options.init) stateManager._onInit = options.init;
+        stateManager._onInit = options.init;
         if (options.statechart) {
           stateManager.add(options.statechart);
-        }
-        if (this._isFunc(options.onStateChange)) {
-          stateManager.onStateChange = options.onStateChange;
         }
       }
       return stateManager;
@@ -151,9 +173,9 @@
           childStates = [];
           break;
       }
-      var pairs = [];
+      var pairs = [], childState, defaultSubstateRegex = /^!/;
       for (var i = 0; i < childStates.length; i++) {
-        if (childStates[i]) pairs.push([parentState, childStates[i]]);
+        if (childStates[i]) pairs.push([parentState, childStates[i].replace(defaultSubstateRegex, ''), defaultSubstateRegex.test(childStates[i])]);
       }
       return pairs;
     },
@@ -188,15 +210,25 @@
         // enter to desired state
         for (i = 0; i < states.entries.length; i++) {
           currentState = this._allStates[states.entries[i]];
-          if (typeof currentState.enter === 'function') {
+          if (this._isFunc(currentState.enter)) {
             if (currentState.enter.call(this, this._currentState) === false) {
               // TODO halt
             }
           }
         }
+
         this._currentState = stateName;
         this._regenerateCurrentActions();
-        this.onStateChange(stateName);
+        
+        // execute 'stay'
+        currentState = this._allStates[this._currentState];
+        if (this._isFunc(currentState.stay)) {
+          currentState.stay.call(this);
+        }
+
+        // go to default substate
+        var defaultSubstate = this._defaultSubstates[this._currentState];
+        if (defaultSubstate) this.goTo(defaultSubstate);
       }
       return this;
     },
@@ -209,10 +241,10 @@
       Usage:
     
       A. add('parentState -> childState');
-      B. add('parentState -> childState1, childState2, ..., childStateN');
+      B. add('parentState -> childState1 childState2 ... childStateN');
       C. add([
-        'parentState1 -> childState11, childState12, ... childState1N',
-        'parentState2 -> childState21, childState22, ... childState2N',
+        'parentState1 -> childState11 childState12 ... childState1N',
+        'parentState2 -> childState21 childState22 ... childState2N',
         ...
       ]);
     
@@ -220,26 +252,28 @@
         Additionally can be an array of aforementioned strings.
     */
     add: function(stateConnection) {
-      var i, parentState, childState;
+      var i, parentState, childState, isDefaultSubstate;
       if (typeof stateConnection === 'string') {
         // string
         var pairs = this._getStatePairs(stateConnection);
         for (i = 0; i < pairs.length; i++) {
           parentState = pairs[i][0];
           childState = pairs[i][1];
+          isDefaultSubstate = pairs[i][2];
           if (!this._allStates[parentState]) {
             console.warn('State ' + parentState + ' is not included in the tree. State not added.');
             return;
           }
-          if (typeof childState === 'object') {
-            for (var state in childState) this.add(parentState, state, childState[state]);
-          } else {
-            if (this._allStates[childState]) {
-              console.warn('State ' + childState + ' is already defined. State not added.');
-              return;
+          if (this._allStates[childState]) {
+            console.warn('State ' + childState + ' was already defined and will be overwritten.');
+          }
+          this._allStates[childState] = {};
+          this._parentStates[childState] = parentState;
+          if (isDefaultSubstate) {
+            if (this._defaultSubstates[parentState]) {
+              console.warn('State ' + parentState + ' already has a default substate ' + this._defaultSubstates[parentState] + ' which will be overwritten with ' + childState);
             }
-            this._allStates[childState] = {};
-            this._parentStates[childState] = parentState;
+            this._defaultSubstates[parentState] = childState;
           }
         }
       } else {
@@ -258,7 +292,7 @@
     
       You can break the chain by returning false in an action.
     
-      Usage: acti(actionName, [arg1, [arg2, ..., argN]]);
+      Usage: act(actionName, [arg1, [arg2, ..., argN]]);
     
       @param actionName {String} the name of the action
       @param (optional) arg1 ... argN - additional parameters to send to the action
@@ -273,25 +307,33 @@
       }
       return this;
     },
+
+    /**
+      @deprecated 
+    */
+    whenIn: function() {
+      console.info('Deprecated: Use when() instead of whenIn()');
+      return this.when.apply(this, arguments);
+    },
   
     /*
       Attach a set of actions for one or more states.
       Multiple declarations of the same action for a state will overwrite the existing one.
 
       USAGE:
-        A. whenIn('stateName', { 
+        A. when('stateName', { 
           action1: function() {},
           action2: function() {},
           ...
         });
 
-        B. whenIn('stateName1 stateName2 ...', {
+        B. when('stateName1 stateName2 ...', {
           action1: function() {},
           action2: function() {},
           ...
         });
 
-        C. whenIn({
+        C. when({
           "stateName1": {
             action11: function(){},
             action12: function(){}
@@ -308,7 +350,7 @@
         - a hash where the key is a state name / space-separated state names, and the value is the actions object (usage C)
       @param actions {Object} list of actions to attach to the state(s)
     */
-    whenIn: function(stateString, actions) {
+    when: function(stateString, actions) {
       var i;
       if (typeof stateString === 'object') {
         for (i in stateString) {
@@ -538,6 +580,15 @@
         window.clearInterval(this._timerId);
       }
       return this;
+    }
+  };
+
+  // TODO [DB]
+  AppSeeds.DelegateSupport = {
+    delegate: null,
+    del: function(name) {
+      return delegate && typeof delegate[name] === 'function' ? 
+        delegate[name].apply(this, Array.prototype.slice.call(arguments, 1)) : true;
     }
   };
   

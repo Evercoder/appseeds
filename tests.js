@@ -12,6 +12,98 @@ test('StateManager implied root state', function() {
 	strictEqual(sm._parentStates['state2'], 'root', 'implied root');
 });
 
+test("State manager stay() method", function() {
+  expect(3);
+  var sm = AppSeeds.StateManager.create();
+  sm.add([
+    'state1 state2',
+    'state1 -> state11 state12',
+    'state2 -> state21 state22',
+    'state11 -> state111 state 112'
+  ]);
+
+  sm.when('state1', {
+    stay: function() {
+      ok('here!', 'state1.stay()');
+    }
+  });
+
+  sm.goTo('state1');
+
+  // go to destination via descendant state
+  sm.goTo('state2').goTo('state111').goTo('state1');
+  
+  // go to destination via ancestor state
+  sm.goTo('root').goTo('state1');
+});
+
+test("StateManager stay() to define default substate", function() {
+  expect(2);
+  var sm = AppSeeds.StateManager.create();
+  sm.add([
+    'state1 state2',
+    'state1 -> state11 state12',
+    'state2 -> state21 state22',
+    'state11 -> state111 state112'
+  ]);
+  sm.when('state1', {
+    stay: function() { this.goTo('state111'); }
+  });
+
+  sm.when('state11', {
+    stay: function() {
+      ok('here!', 'state11.stay()');
+    }
+  });
+  sm.when('state111', {
+    stay: function() {
+      ok('here!', 'state111.stay()');
+    }
+  });
+
+  sm.goTo('state1');
+  strictEqual(sm.locate(), 'state111', 'transitioned to state111');
+  sm.goTo('root');
+});
+
+test("StateManager: defaultSubstate", function() {
+  expect(1);
+  var sm = AppSeeds.StateManager.create();
+  sm.add([
+    'state1 state2',
+    'state1 -> !state11 state12',
+    'state2 -> state21 state22',
+    'state11 -> !state111 state112'
+  ]);
+
+  sm.goTo('state1');
+  strictEqual(sm.locate(), 'state111', 'transitioned to state111');
+});
+
+test("StateManager: overwrite defaultSubstate", function() {
+  expect(1);
+  var sm = AppSeeds.StateManager.create();
+  sm.add([
+    'state1 state2',
+    'state1 -> !state11',
+    'state1 -> !state12',
+    'state12 -> !state121 state122',
+    'state11 -> !state111 state112'
+  ]);
+
+  sm.goTo('state1');
+  strictEqual(sm.locate(), 'state121', 'transitioned to state121');
+});
+
+test("StateManager: defaultSubstate for root", function() {
+  expect(1);
+  var sm = AppSeeds.StateManager.create();
+  sm.add('state1 !state2');
+  sm.goTo('state1').goTo('root');
+
+  strictEqual(sm.locate(), 'state2', 'transitioned to state2');
+});
+
 test('PubSub basic use case', function() {
 	expect(2);
 	var ps = AppSeeds.PubSub.create();
