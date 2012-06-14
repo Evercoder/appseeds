@@ -4,51 +4,42 @@
   http://github.com/danburzo/appseeds
 */
 
-/*
-  TODO:
-  General:
-    - samples/usecases in jsfiddle
-  StateManager:
-    - allow ASYNC behavior by returning false on enter / exit + StateManager.resume()
-
-  USE-CASE:
-    - PubSub + multiple statemanager
-    var statePS = Seeds.PubSub.create();
-    statePS.proxy = function(stateManager) {
-      statePS.sub(stateManager.act, stateManager); // todo implement nicely
-      return this;
-    };
-
-    ps.bind = function(ps2) {
-      ps.sub(ps2.pub, ps2);
-      ps2.sub(ps.pub, ps); // todo race conditions
-    }
-
-    ps.repeat = function(ps2) {
-      ps2.sub(this.pub, this);
-    }
-
-    statePS.proxy(sm1).proxy(sm2).proxy(sm3);
-*/
-
-
 /*globals exports define require console*/
 (function(){
   // for CommonJS and the browser
   var AppSeeds = typeof exports !== 'undefined' ? exports : (this.AppSeeds = this.Seeds = {});
   
-  // Semantic versioning; see http://semver.org/
+  // Semantic versioning
+  // @see http://semver.org/
   AppSeeds.version = '0.4.0';
 
   // polyfills
   if(!Array.isArray) Array.isArray = function (vArg) { return Object.prototype.toString.call(vArg) === "[object Array]"; };
 
+  /**
+    @class
+    AppSeeds.StateManager
+  */
   AppSeeds.StateManager = {
+    
+    // name of the root state
     rootState: 'root',
-    _currentState: null, // current state of the manager
-    _allStates: {}, // the set of all states with their actions
+    
+    // current state of the manager
+    _currentState: null,
+    
+    // TODO consolidate _allStates, _parentStates, _defaultSubstates into single hash
+    
+    // keeps the collection of states
+    // key: state name; value: hash of actions for the state
+    _allStates: {}, 
   
-    _parentStates: {}, // the state tree; key is state name, value is name of parent state.
+    // the state tree
+    // key: child state name; value: parent state name;
+    _parentStates: {},
+    
+    // default substates
+    // key: state name; value: default substate name;
     _defaultSubstates: {}, // the default substate for each state
   
     /**
@@ -67,7 +58,7 @@
       C.prototype = this;
       var stateManager = new C();
     
-      // init internals
+      // initialize internals
       stateManager.rootState = 'root';
       stateManager._parentStates = {};
       stateManager._allStates = {};
@@ -76,12 +67,11 @@
       stateManager._parentStates[stateManager.rootState] = null;
       stateManager._currentState = stateManager.rootState;
     
-
       options = options || {};
-
       if (typeof options === 'string' || Array.isArray(options)) {
         stateManager.add(options);
       } else {
+        // TODO migrate _onInit to delegate pattern
         stateManager._onInit = options.init;
         if (options.states) {
           stateManager.add(options.states);
@@ -90,12 +80,13 @@
       return stateManager;
     },
   
+    // initialize state manager; optional, at this point.
     init: function() {
       if (this._isFunc(this._onInit)) this._onInit.call(this);
       return this;
     },
   
-    // traces path from current state to root state
+    // trace path from current state to root state
     _toRoot: function(stateName) {
       var route = [];
       while(stateName) {
@@ -105,7 +96,7 @@
       return route;
     },
   
-    // finds LCA (Lowest Common Ancestors) between two states
+    // find the LCA (Lowest Common Ancestors) between two states
     _lca: function(startState, endState) { 
       var exits = this._toRoot(startState), entries = this._toRoot(endState);
       for (var i = 0; i < exits.length; i++) {
@@ -125,6 +116,7 @@
       return typeof f === 'function';
     },
   
+    // parse the state string into pairs of parent and child state.
     _getStatePairs: function(str) {
       var tmp = str.split('->');
       var parentState, childStates;
@@ -278,27 +270,12 @@
       act recursively until action returns false; 
     */
     _act: function(state, args) {
-      this.context = this._allStates[state], action = this.context[args[0]];
+      this.context = this._allStates[state];
+      var action = this.context[args[0]];
       // break the chain on `return false;`
       if (this._isFunc(action) && action.apply(this, Array.prototype.slice.call(args, 1)) === false) return;
       if (this._parentStates[state]) this._act(this._parentStates[state], args);   
       return this.context;    
-    },
-
-    /**
-      @deprecated 
-    */
-    whenIn: function() {
-      console.info('Deprecated: Use when() instead of whenIn()');
-      return this.when.apply(this, arguments);
-    },
-    
-    /**
-      @deprecated 
-    */
-    goTo: function() {
-      console.info('Deprecated: Use go() instead of goTo()');
-      return this.go.apply(this, arguments);
     },
   
     /*
@@ -376,6 +353,18 @@
     */
     locate: function() {
       return this._currentState;
+    },
+    
+    /** @deprecated */
+    whenIn: function() {
+      console.info('Deprecated: Use when() instead of whenIn()');
+      return this.when.apply(this, arguments);
+    },
+    
+    /** @deprecated */
+    goTo: function() {
+      console.info('Deprecated: Use go() instead of goTo()');
+      return this.go.apply(this, arguments);
     }
   };
 
@@ -422,6 +411,7 @@
       return this;
     },
     
+    // parse the namespaced event string to identify its components
     _parseEventNamespace: function(event) {
       var events = [], str = '', ch;
       for (var i = 0; i < event.length; i++) {
@@ -579,11 +569,11 @@
       return this;
     },
 
-    // TODO [DB]
+    // TODO
     destroy: function() {}
   };
 
-  // TODO [DB]
+  // TODO
   AppSeeds.DelegateSupport = {
     delegate: null,
     del: function(name) {
@@ -593,7 +583,7 @@
   };
 
   AppSeeds.Binder = {
-    // TODO [DB] DOM Binder of sorts.
+    // TODO DOM Binder of sorts.
   };
   
 })(this);
