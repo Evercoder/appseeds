@@ -1,295 +1,98 @@
-<!doctype html>
+<!DOCTYPE HTML>
 <html>
   <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>Appseeds by danburzo</title>
-
-    <link rel="stylesheet" href="stylesheets/styles.css">
-    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-    <!--[if lt IE 9]>
-    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
+    <title>AppSeeds</title>
+    <link rel='stylesheet' href='css/pygments-trac.css' type='text/css' media='all'/>
+    <link rel='stylesheet' href='css/solarized-light.css' type='text/css' media='all'/>
+    <style type='text/css'>
+      body { font-family:'Helvetica','Arial', sans-serif;background:#fff;color:#333;line-height:1.4;}
+      body a { color:#c00; text-decoration:none; border-bottom:5px solid #eee;}
+      body a:hover {border-color:#ccc;}
+      .get-started-item {
+        float:left;
+        width:33.33%;
+        padding:10px;
+        -moz-box-sizing:border-box;-webkit-box-sizing:border-box;box-sizing:border-box;
+        border-right:5px solid #ccc;
+        height:30em;
+      }
+      .get-started-item:last-child { border-right:none; }
+      
+      h1 {color:#c00;font-size:3em;letter-spacing:-1px;}
+      
+      #page {width:80%;margin:1em auto;}
+      #get-started {border:5px solid #ccc;}
+      #get-started h2 {border-bottom:5px solid #ccc;margin:0;padding:10px;}
+      #get-started h2 pre {font-weight:normal;display:inline;}
+      
+      .cf:after {content:'.';visibility:hidden;display:block;height:0;clear:both;}
+    </style>
+    <script type='text/javascript' src='js/rainbow-custom.min.js'></script>
   </head>
   <body>
-    <div class="wrapper">
-      <header>
-        <h1>Appseeds</h1>
-        <p>A toolkit of library-agnostic components for modern JavaScript applications. Currently: State manager, Pub/Sub, Scheduler.</p>
-        <p class="view"><a href="https://github.com/danburzo/appseeds">View the Project on GitHub <small>danburzo/appseeds</small></a></p>
-        <ul>
-          <li><a href="https://github.com/danburzo/appseeds/zipball/master">Download <strong>ZIP File</strong></a></li>
-          <li><a href="https://github.com/danburzo/appseeds/tarball/master">Download <strong>TAR Ball</strong></a></li>
-          <li><a href="https://github.com/danburzo/appseeds">View On <strong>GitHub</strong></a></li>
-        </ul>
-      </header>
-      <section>
-        <p>AppSeeds is the utility-belt toolkit for modern JavaScript applications.</p>
+      <div id='page'>
+        <div id='header'>
+          <h1>AppSeeds</h1>
+          <p>Elegant JavaScript components for modern web applications.</p>
+          <p>
+              Fork it at <a href='https://github.com/danburzo/appseeds'>github.com/danburzo/appseeds</a>. 
+              Download <a href='https://github.com/danburzo/appseeds/zipball/master'>zip</a>, <a href='https://github.com/danburzo/appseeds/tarball/master'>tar</a>.
+          </p>
+        </div>
+        <div id='get-started' class='cf'>
+          <h2 class='cf'>Get started <pre><code data-language='javascript'>&lt;script type='text/javascript' src='appseeds.js' &gt;&lt;/script&gt;</code></pre></h2>
+          <div class='get-started-item'>
+            <h3>StateManager</h3>
+            <p>Hierarchical state charts. <!--<a href='#'>More &rarr;</a>--></p>
+<pre><code data-language='javascript'>
+var manager = Seeds.StateManager
+  .create('dog cat bird')
+  .when('dog', {
+    say: function() { alert('woof!'); }
+  })
+  .when('cat', {
+    say: function() { alert('meow!'); }
+  })
+  .when('bird', {
+    say: function() { alert('chirp!'); }
+  })
+  .go('cat');
 
-<h2>AppSeeds.StateManager</h2>
-
-<p>Library-agnostic state manager for your schemes &amp; machinations.</p>
-
-<h3>Quick start guide</h3>
-
-<h4>1. Create your state manager</h4>
-
-<pre><code>var stateManager = AppSeeds.StateManager.create();
+manager.act('say'); 
+// meow!
 </code></pre>
+          </div>
+          <div class='get-started-item'>
+            <h3>PubSub</h3>
+            <p>Publish/Subscribe communication. <!--<a href='#'>More &rarr;</a>--></p>
+<pre><code data-language='javascript'>
+var ps = Seeds.PubSub.create();
 
-<p><strong>What happened:</strong> <code>stateManager</code> is ready to manage your application states. For now it has an single empty state called <code>root</code> with no actions.</p>
-
-<h4>2. Add your states</h4>
-
-<pre><code>stateManager.add([
-  'root -&gt; loggedIn loggedOut', // the root state has two sub-states
-  'loggedIn -&gt; home users profile settings' // `loggedIn` state has four sub-states
-]);
-</code></pre>
-
-<p><strong>What happpened:</strong> We defined the state hierarchy for our application.</p>
-
-<h4>3. Add your state-specific actions</h4>
-
-<pre><code>stateManger.whenIn('loggedOut', {
-  enter: function() {
-    // show login dialog
-  },
-  exit: function() {
-    // hide login dialog
-  },
-  logIn: function() {
-    this.goTo('loggedIn'); // transition to state `loggedIn`
-  }
+ps.sub('phonecall', function(who) {
+  alert(who + ' called!');
 });
 
-stateManager.whenIn('loggedIn', {
-  enter: function() {
-    // show main application interface
-  },
-  exit: function() {
-    // hide main application interface
-  },
-  logOut: function() {
-    this.goTo('loggedOut'); // transition to state `loggedOut`
-  }
-});
+ps.pub('phonecall', 'dan'); 
+// dan called!
 </code></pre>
+          </div>
+          <div class='get-started-item'>
+            <h3>Scheduler</h3>
+            <p>Easy interface to timeouts and intervals. <!--<a href='#'>More &rarr;</a>--></p>
+<pre><code data-language='javascript'>
+var task = Seeds.Scheduler.create(
+  function() { /* do something */ }
+);
 
-<p><strong>What happened:</strong> Two things, actually: firstly, we defined the reserved <code>enter</code> and <code>exit</code> methods, which dictate what happens when the application transitions to the state / away from the state; secondly, we specified some state-specific methods that will only be available when the application is in that state. This makes the application more robust since we're essentially making sure that methods are executed in their intended context.</p>
-
-<h4>4. Your first state transition</h4>
-
-<pre><code>$(document).ready(function() {
-  stateManager.goTo('loggedOut');
-});
+task.delay(1000); // do it after 1s&hellip;
+task.stop(); // &hellip;or not
+task.reset(); // &hellip;or too!
 </code></pre>
-
-<p><strong>What happened:</strong> When we loaded our application (in the above case, on DOM ready) we transitioned to the <code>loggedOut</code> state, our starting point in the application. Since we defined an <code>enter</code> action for this state, the login dialog pops up.</p>
-
-<h4>4. Make your app do things</h4>
-
-<pre><code>stateManager.act('logIn'); // will call the `logIn` action
-</code></pre>
-
-<p><strong>What happened:</strong> We invoked a state-specific action. This will look into the tree for actions with the specified name, starting from the current state and up to the root state, executing each. In our case, <code>logIn</code> is only defined in the <code>loggedOut</code> state, with the effect of transitioning to the <code>loggedIn</code> state. Consequently the login dialog is hidden and the app interface is displayed, courtesy of our <code>enter</code>/<code>exit</code> actions.</p>
-
-<h3>API reference</h3>
-
-<p><strong>.create()</strong> 
-Creates a new instance of StateManager.</p>
-
-<ul>
-<li>.create(statechartString)</li>
-<li>.create(statechartStringArray)</li>
-<li>.create(options)</li>
-</ul><p><strong>.add()</strong> 
-Adds states to the state chart.</p>
-
-<ul>
-<li>.add(statechartString) Add a series of states to the state chart. Various formats accepted:
-** Single child state: <em>parentState -&gt; childState</em> adds <code>childState</code> under <code>parentState</code> in the state chart.
-** Multiple child states: <em>parentState -&gt; childState1 childState2</em>
-** Implied root state: <em>childState1 childState2</em> when ommited, the parent state is assumed to be the root state.</li>
-<li>.add(statechartStringArray) as a shortcut to the above, method allows an array of aforementioned <code>statechartString</code>
-</li>
-</ul><p><strong>.whenIn()</strong> 
-Define state-specific actions.</p>
-
-<ul>
-<li>
-<em>.whenIn(stateName, actions)</em> 
-** stateName: string representing state name or a list of space-separated state names.
-** actions: an object containing the functions to associate with the state(s)</li>
-<li>
-<em>.whenIn(actionsHash)</em> shortcut for declaring actions for multiple states; key is the state name(s), value is the object containing the actions for the state(s)</li>
-</ul><p><strong>.act(actionString)</strong> 
-Send an action to the state manager. There are two actions with special meaning:</p>
-
-<ul>
-<li>
-<em>enter()</em> specifies the behavior when the state manager transitions into the state</li>
-<li>
-<em>exit()</em> specifies the behavior when the state manager transitions away from the state </li>
-</ul><p><strong>.goTo(stateNameString)</strong> 
-Transition to a state.</p>
-
-<p><strong>.locate()</strong> 
-Returns the current state.</p>
-
-<h3>StateManager + jQuery: an example pattern</h3>
-
-<p><strong>Problem:</strong> You want your UI elements to trigger actions in the state manager.
-<strong>Solution:</strong> Add a DOM identifier for elements you want to hook up with the state manager.</p>
-
-<pre><code>  &lt;!-- in your HTML --&gt;
-  &lt;a data-seed-action='actionName'&gt;Label&lt;/a&gt;  
-
-  // in your JavaScript
-  $(document).on('click', '[data-seed-action]', function(e) {
-    stateManager.act($(this).data('seed-action'));
-  });
-</code></pre>
-
-<hr><h2>AppSeeds.PubSub</h2>
-
-<p>PubSub allows you application components to talk to each other through well-established channels, loosening that tight coupling.</p>
-
-<h3>Quick start guide</h3>
-
-<h4>1. Create your message dispatcher</h4>
-
-<pre><code>var ps = AppSeeds.PubSub.create();
-</code></pre>
-
-<p><strong>What happened:</strong> We instantiated PubSub. <code>ps</code> is ready to dispatch events.</p>
-
-<h4>2. Subscribe to an event</h4>
-
-<pre><code>ps.sub('mail_received', function(title, sender) {
-  console.log('you received a message from ' + sender + ' with the title ' + title);
-});
-</code></pre>
-
-<p><strong>What happened:</strong> We created a subscriber for the <code>mail_received</code> event.</p>
-
-<h4>3. Publish an event</h4>
-
-<pre><code>ps.pub('mail_received', 'Check out this GIF!', 'Dan');
-</code></pre>
-
-<p><strong>What happened:</strong> We published the <code>mail_received</code> event, and the subscriber defined earlier was notified.</p>
-
-<h4>Extra credit: namespaced events</h4>
-
-<pre><code>ps.sub('mail', function() { console.log('caught a mail event!'); });
-ps.sub('mail:received', function(title, sender) { /* see previous step */ });
-ps.sub('mail:sent', function(title, recipient) { /* do something */ });
-
-ps.pub('mail:sent', 'Dan, that was hilarious!', 'Dan');
-</code></pre>
-
-<p><strong>What happened:</strong> You created three subscribers. The first of them will be notified of any event within the <code>mail</code> namespace, while the other two subscribe to specific events within the namespace. Finally, the published event will be caught by the first and the third subscribers.</p>
-
-<h3>API reference</h3>
-
-<p><strong>.create()</strong> create a new instance of PubSub.</p>
-
-<p><strong>.sub(topicString, method, [thisArg, [isOnce]])</strong> 
-subscribe to a topic. The method can optionally be tied to a context via the <code>thisArg</code> parameter. The <code>isOnce</code> boolean controls sub() vs. once() behavior.</p>
-
-<p><strong>.unsub(topicString, method)</strong> 
-unsubscribe a function from a topic.</p>
-
-<p><strong>.once(topicString, method, [thisArg])</strong> 
-same as sub(), except the method self-unsubscribes upon successful execution.
-To signal an unsuccessful execution (and thus prevent the unubscription) return false from your method.</p>
-
-<p><strong>.pub(topicString, [arg1, [arg2, ... [argN] ... ]])</strong> 
-publish a topic. Method can receive additional arguments to pass to the subscribers.</p>
-
-<p><strong>.schedule(topicString, [arg1, [arg2, ... [argN] ... ]])</strong> 
-same syntax as <em>.pub()</em>, schedule an event. Returns an <em>AppSeeds.Scheduler</em> instance.</p>
-
-<hr><h2>AppSeeds.Scheduler</h2>
-
-<p>Scheduler is a module for mananging timed events that provides a wrapper for <code>window.setTimeout</code> &amp; <code>window.setInterval</code>, with handy methods to delay, repeat, reset and cancel events.</p>
-
-<h3>Quick start guide</h3>
-
-<h4>1. Make a schedule</h4>
-
-<pre><code>var schedule = AppSeeds.Scheduler.create(function() {
-  // do something
-});
-</code></pre>
-
-<p><strong>What happened:</strong> The scheduler has created a task but it has not executed the function yet.</p>
-
-<h4>2. Delay the execution</h4>
-
-<pre><code>schedule.delay(1000); // wait a sec, then run
-</code></pre>
-
-<p><strong>What happened:</strong> The function was executed after a 1 second delay.</p>
-
-<h4>Extra credit: integrate with PubSub</h4>
-
-<pre><code>// instead of 
-ps.pub('event', arg1, arg2);
-
-// you can do this
-ps.schedule('event', arg1, arg2).delay(1000);
-</code></pre>
-
-<p><strong>What happened:</strong> Instead of publishing the event right away, we schedule it to run after 1 second.</p>
-
-<h3>API reference</h3>
-
-<p><strong>.create(callback, [args, [thisArg]])</strong> create a scheduled task. Returns an instance of AppSeeds.Scheduler.</p>
-
-<p><strong>.now()</strong> Execute the scheduled task immediately.</p>
-
-<p><strong>.delay(timeout)</strong> Execute the scheduled task after a number of milliseconds. (Equivalent of window.setTimeout)</p>
-
-<p><strong>.repeat(interval)</strong> Execute the scheduled task repeatedly with an interval of x milliseconds. (Equivalent of window.setInterval)</p>
-
-<p><strong>.reset()</strong> Re-start the timers for the scheduled task, effectively postponing the task. Also serves to resuscitate a stopped task.</p>
-
-<p><strong>.stop()</strong> Remove all timers for the scheduled task.</p>
-
-<h3>Use cases</h3>
-
-<h4>Periodical auto-save mechanism</h4>
-
-<pre><code>var save = function() { /* perform save */ };
-var autoSave = AppSeeds.Scheduler.create(save).interval(30 * 1000); // run auto-save each 30 seconds
-var manualSave = function() {
-  save(); // save
-  autoSave.reset(); // since we manually saved, reset the timer
-}
-</code></pre>
-
-<h4>Input with delayed auto-search</h4>
-
-<pre><code>var search = function() { 
-  var val = $('input').val();
-  // perform search based on value
-}
-var autoSearch = AppSeeds.Scheduler.create(search).delay(300).stop(); // run after 300 ms, but not now
-$('input').on({
-  'focus keyup': autoSearch.reset,
-  'blur': autoSearch.stop
-});
-</code></pre>
-      </section>
-      <footer>
-        <p>This project is maintained by <a href="https://github.com/danburzo">danburzo</a></p>
-        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
-      </footer>
-    </div>
-    <script src="javascripts/scale.fix.js"></script>
-    
+          </div>
+        </div>
+        
+        <p>Complete API reference coming soon.</p>
+        
+      </div>
   </body>
 </html>
