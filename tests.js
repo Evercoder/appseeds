@@ -417,7 +417,7 @@ test('Permit basic setup', function() {
   expect(2);
   var permit = AppSeeds.Permit.create();
   var myapp = {
-    doSomething: permit('admin', function() {
+    doSomething: permit.allow('admin', function() {
       ok('here!', 'entered method');
       strictEqual(arguments.length, 3, 'all arguments received');
     })
@@ -440,7 +440,7 @@ test("Permit: self-delegation", function() {
   });
   
   var myapp = {
-    doSomething: permit('admin', function() {})
+    doSomething: permit.allow('admin', function() {})
   };
   permit.auth('admin');
   myapp.doSomething();
@@ -463,7 +463,7 @@ test("Permit: external delegate", function() {
   });
   
   var myapp = {
-    doSomething: permit('admin', function() {})
+    doSomething: permit.allow('admin', function() {})
   };
   permit.auth('admin');
   myapp.doSomething();

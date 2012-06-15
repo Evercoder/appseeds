@@ -11,7 +11,7 @@
   
   // Semantic versioning
   // @see http://semver.org/
-  AppSeeds.version = '0.5.0';
+  AppSeeds.version = '0.6.0';
 
   // polyfills
   if(!Array.isArray) Array.isArray = function (vArg) { return Object.prototype.toString.call(vArg) === "[object Array]"; };
@@ -639,25 +639,19 @@
     create: function(options) {
             
       var sm = AppSeeds.StateManager.create('APPSEEDS_UNAUTH_STATE');
+      var permit = {};
       
-      var guid = function() {
-        var S4 = function() { return (((1+Math.random())*0x10000)|0).toString(16).substring(1); };
-        return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
-      };
-      
-      var permit = function() {
-        var i, roles = [], originalFunction;
-        for (i = 0; i < arguments.length && !originalFunction; i++) {
-          if (typeof arguments[i] !== 'function') {
-            roles = roles.concat(arguments[i].split(/\s+/));
-          } else {
-            originalFunction = arguments[i];
-          }
-        }
-        if (originalFunction) {
+      /**
+        Allow a function for a set of user roles.
+        @param roleStr {String} role or list of space-separated roles
+        @param originalFunction {Function} function to lock
+        @return lockedFunction {Function} the function protected based on role(s)
+      */
+      permit.allow = function(roleStr, originalFunction) {
+        var roles = roleStr.split(/\s+/), i;
+        if (typeof originalFunction === 'function') {
           
           var disallow = function(thisArg, args) { 
-            console.log(args);
             AppSeeds.delegate.apply(permit, ['didDisallow'].concat(Array.prototype.slice.call(args)));
             return false; 
           };
@@ -667,18 +661,18 @@
           };
           
           var stateChartAction = function(thisArg, args) { originalFunction.apply(thisArg, args); };
-          var functionId = guid(), f = function() { sm.act(functionId, this, arguments); };
+          var functionId = AppSeeds.guid();
+          var f = function() { sm.act(functionId, this, arguments); };
           var obj = {};
-          obj[functionId] = stateChartAction;
           
-          sm.when('root', obj);
+          // add action to root state
+          obj[functionId] = stateChartAction;
+          sm.when(sm.root, obj);
           
           // disallow for all states besides root state
           obj[functionId] = disallow;
           for (i in sm._states) {
-            if (sm._states.hasOwnProperty(i) && i !== sm.root) {
-              sm.when(i, obj);
-            }
+            if (sm._states.hasOwnProperty(i) && i !== sm.root) sm.when(i, obj);
           }
           
           // allow for specified roles
@@ -688,8 +682,7 @@
             if (!sm.state(roles[i])) sm.add(roles[i]);
             sm.when(roles[i], obj);
           }
-          
-          // return the function surrogate
+          // return the locked function
           return f;
         }
         return null;
@@ -721,7 +714,6 @@
           if (options.hasOwnProperty(i)) permit[i] = options[i];
         }
       }
-      
       return permit;
     }
   };
@@ -729,6 +721,11 @@
   AppSeeds.delegate = function() {
     var delegate = this.delegate || this;
     return typeof delegate[arguments[0]] === 'function' ? delegate[arguments[0]].apply(this, Array.prototype.slice.call(arguments, 1)) : true;
+  };
+  
+  AppSeeds.guid = function() {
+    var S4 = function() { return (((1+Math.random())*0x10000)|0).toString(16).substring(1); };
+    return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
   };
   
 })(this);
