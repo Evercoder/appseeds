@@ -3,6 +3,7 @@
   <head>
     <title>AppSeeds</title>
     <link rel='stylesheet' href='css/solarized-light.css' type='text/css' media='all'/>
+    <script type='text/javascript' src='js/rainbow-custom.min.js'></script>
     <style type='text/css'>
       body { font-family:'Helvetica','Arial', sans-serif;background:#fff;color:#333;line-height:1.4;}
       body a { color:#c00; text-decoration:none; border-bottom:1px solid #eee;}
@@ -20,25 +21,26 @@
       
       h1 {color:#c00;font-size:3em;letter-spacing:-1px;}
       
-      #page {width:80%;margin:1em auto;}
-      #get-started h2 pre {font-weight:normal;display:inline;}
+      #page {width:80%;margin:1em auto;padding-bottom:2em;}
       
       .cf:after {content:'.';visibility:hidden;display:block;height:0;clear:both;}
+      pre, code { font-family: "Monaco", "Consolas", courier, monospace; }
     </style>
-    <script type='text/javascript' src='js/rainbow-custom.min.js'></script>
   </head>
   <body>
       <div id='page'>
         <div id='header'>
           <h1>AppSeeds</h1>
-          <p>Elegant JavaScript components for modern web applications.</p>
+          <p>Elegant JavaScript components for modern web applications. Made by <a href='https://twitter.com/#!/danburzo'>@danburzo</a>.</p>
           <p>
-              Fork it at <a href='https://github.com/danburzo/appseeds'>github.com/danburzo/appseeds</a>. 
+              Fork &amp; contribute at <a href='https://github.com/danburzo/appseeds'>github.com/danburzo/appseeds</a>. 
               Download <a href='https://github.com/danburzo/appseeds/zipball/master'>zip</a>, <a href='https://github.com/danburzo/appseeds/tarball/master'>tar</a>.
+              (MIT License)
           </p>
         </div>
         <div id='get-started' class='cf'>
-          <h2 class='cf'>Get started: <pre><code data-language='javascript'>&lt;script type='text/javascript' src='appseeds.js' &gt;&lt;/script&gt;</code></pre></h2>
+          <h2 class='cf'>Get started</h2>
+          <pre><code data-language='javascript'>&lt;script type='text/javascript' src='appseeds.js'&gt;&lt;/script&gt;</code></pre>
           <div class='get-started-item'>
             <h3>StateManager</h3>
             <p>Hierarchical state charts. <!--<a href='#'>More &rarr;</a>--></p>
@@ -61,7 +63,7 @@ manager.act('say'); // meow!
           </div>
           <div class='get-started-item'>
             <h3>PubSub</h3>
-            <p>Namespaced publish/subscribe communication. <!--<a href='#'>More &rarr;</a>--></p>
+            <p>Fast publish/subscribe communication with support for namespaced events. <!--<a href='#'>More &rarr;</a>--></p>
 <pre><code data-language='javascript'>
 var ps = Seeds.PubSub.create();
 
@@ -74,7 +76,7 @@ ps.pub('phonecall', 'dan'); // dan called!
           </div>
           <div class='get-started-item'>
             <h3>Scheduler</h3>
-            <p>Easy interface to timeouts and intervals. <!--<a href='#'>More &rarr;</a>--></p>
+            <p>Simple interface to timeouts and intervals. <!--<a href='#'>More &rarr;</a>--></p>
 <pre><code data-language='javascript'>
 var task = Seeds.Scheduler.create(
   function() { /* do something */ }
@@ -97,14 +99,11 @@ var MyApp = {
   // ...after
   poke: permit.allow('owner', function(who) { /* do it */ })
 };
-permit.auth('guest');
-MyApp.call(); // won't do anything
+permit.auth('guest'); // authenticate as guest
+MyApp.poke(); // won't do anything
 </code></pre>
           </div>
         </div>
-        
-        <p>Complete API reference coming soon.</p>
-        
       </div>
   </body>
 </html>
