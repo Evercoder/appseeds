@@ -656,12 +656,13 @@
         }
         if (originalFunction) {
           
-          var disallow = function() { 
-            AppSeeds.delegate.apply(permit, ['didDisallow'].concat(arguments));
+          var disallow = function(thisArg, args) { 
+            console.log(args);
+            AppSeeds.delegate.apply(permit, ['didDisallow'].concat(Array.prototype.slice.call(args)));
             return false; 
           };
-          var allow = function() {
-            AppSeeds.delegate.apply(permit, ['didAllow'].concat(arguments));
+          var allow = function(thisArg, args) {
+            AppSeeds.delegate.apply(permit, ['didAllow'].concat(Array.prototype.slice.call(args)));
             return true;
           };
           
@@ -702,8 +703,8 @@
         if (!sm.state(role)) {
           // if the role does not exist in the state manager,
           // we need to create it and disallow all actions
-          var disallow = function() { 
-            AppSeeds.delegate.apply(permit, ['didDisallow'].concat(arguments));
+          var disallow = function(thisArg, args) { 
+            AppSeeds.delegate.apply(permit, ['didDisallow'].concat(Array.prototype.slice(args)));
             return false;
           };
           var disallowAll = {}, rootContext = sm.state(sm.root).context;
@@ -725,9 +726,9 @@
     }
   };
 
-  AppSeeds.delegate = function(name) {
+  AppSeeds.delegate = function() {
     var delegate = this.delegate || this;
-    return typeof delegate[name] === 'function' ? delegate[name].apply(this, Array.prototype.slice.call(arguments, 1)) : true;
+    return typeof delegate[arguments[0]] === 'function' ? delegate[arguments[0]].apply(this, Array.prototype.slice.call(arguments, 1)) : true;
   };
   
 })(this);
