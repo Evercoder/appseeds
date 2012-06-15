@@ -216,33 +216,43 @@
     */
     add: function(stateConnection) {
       var i, parentState, childState, isDefaultSubstate;
-      if (typeof stateConnection === 'string') {
-        // string
-        var pairs = this._getStatePairs(stateConnection);
-        for (i = 0; i < pairs.length; i++) {
-          parentState = pairs[i][0];
-          childState = pairs[i][1];
-          isDefaultSubstate = pairs[i][2];
-          if (!this._allStates[parentState]) {
-            console.warn('State ' + parentState + ' is not included in the tree. State not added.');
-            return;
-          }
-          if (this._allStates[childState]) {
-            console.warn('State ' + childState + ' was already defined and will be overwritten.');
-          }
-          this._allStates[childState] = {};
-          this._parentStates[childState] = parentState;
-          if (isDefaultSubstate) {
-            if (this._defaultSubstates[parentState]) {
-              console.warn('State ' + parentState + ' already has a default substate ' + this._defaultSubstates[parentState] + ' which will be overwritten with ' + childState);
-            }
-            this._defaultSubstates[parentState] = childState;
-          }
+      if (arguments.length > 1) {
+        for (i = 0; i < arguments.length; i++) {
+          this.add(arguments[i]);
         }
       } else {
-        // array
-        for (i = 0; i < stateConnection.length; i++) {
-          this.add(stateConnection[i]);
+        if (Array.isArray(stateConnection)) {
+          for (i = 0; i < stateConnection.length; i++) {
+            this.add(stateConnection[i]);
+          }
+        } else if (typeof stateConnection === 'string') {
+          var pairs = this._getStatePairs(stateConnection);
+          for (i = 0; i < pairs.length; i++) {
+            parentState = pairs[i][0];
+            childState = pairs[i][1];
+            isDefaultSubstate = pairs[i][2];
+            if (!this._allStates[parentState]) {
+              console.warn('State ' + parentState + ' is not included in the tree. State not added.');
+              return;
+            }
+            if (this._allStates[childState]) {
+              console.warn('State ' + childState + ' was already defined and will be overwritten.');
+            }
+            this._allStates[childState] = {};
+            this._parentStates[childState] = parentState;
+            if (isDefaultSubstate) {
+              if (this._defaultSubstates[parentState]) {
+                console.warn('State ' + parentState + ' already has a default substate ' + this._defaultSubstates[parentState] + ' which will be overwritten with ' + childState);
+              }
+              this._defaultSubstates[parentState] = childState;
+            }
+          }
+        } else if (typeof stateConnection === 'object') {
+          for (i in stateConnection) {
+            if (stateConnection.hasOwnProperty(i)) {
+              this.add(i + " -> " + stateConnection[i]);
+            }
+          }
         }
       }
       return this;

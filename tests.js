@@ -12,6 +12,47 @@ test('StateManager implied root state', function() {
 	strictEqual(sm._parentStates['state2'], 'root', 'implied root');
 });
 
+test("StateManager.add(<String>)", function(){
+  var sm = Seeds.StateManager.create();
+  sm.add('state1 state2');
+  sm.add('state1 -> state11 state12');
+  strictEqual(sm._parentStates['state11'], 'state1', 'added correctly');
+});
+
+test("StateManager.add(<Array>)", function(){
+  var sm = Seeds.StateManager.create();
+  sm.add([
+    'state1 state2',
+    'state1 -> state11 state12'
+  ]);
+  strictEqual(sm._parentStates['state11'], 'state1', 'added correctly');
+});
+
+test("StateManager.add(<Object>)", function(){
+  var sm = Seeds.StateManager.create();
+  sm.add({
+    'root': 'state1 state2 state3',
+    'state1': 'state11 state12'
+  });
+  strictEqual(sm._parentStates['state11'], 'state1', 'added correctly');
+});
+
+test("StateManager.add() variable number of parameters", function() {
+  var sm = Seeds.StateManager.create();
+  sm.add(
+    'state1 state2',
+    ['state1 -> state11 state12', 'state2 -> state21 state22'],
+    {
+      'state1': 'state13 state14',
+      'state2': 'state23 state24'
+    }
+  );
+  strictEqual(sm._parentStates['state11'], 'state1', 'added correctly');
+  strictEqual(sm._parentStates['state12'], 'state1', 'added correctly');
+  strictEqual(sm._parentStates['state13'], 'state1', 'added correctly');
+  strictEqual(sm._parentStates['state14'], 'state1', 'added correctly');
+});
+
 test("StateManager.act() bubbling without return values", function() {
   expect(4);
   var sm = Seeds.StateManager.create('stateA stateB stateC');
