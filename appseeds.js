@@ -614,6 +614,98 @@
     // TODO
     destroy: function() {}
   };
+  
+  /**
+    Permit allows you to manage user permissions for various functions in your application.
+    Depends on Seeds.StateManager
+    
+    Usage:
+      Before: without Permit
+        var myApp = {
+          method1: function(arg1, arg2, ... argN) {},
+          method2: function(arg1, arg2, ... argN) {}
+        };
+        
+      After: with Permit
+      var permit = Seeds.Permit.create();
+      var myApp = {
+        method1: permit('admin', 'user', function(arg1, arg2, ... argN) {}),
+        method2: permit('user', function(arg1, arg2, ... argN) {});
+      };
+      
+  */
+  AppSeeds.Permit = {
+
+    create: function() {
+            
+      var sm = AppSeeds.StateManager.create('APPSEEDS_UNAUTH_STATE');
+      var disallow = function() { return false; }, allow = function() { return true; };
+      
+      var guid = function() {
+        var S4 = function() { return (((1+Math.random())*0x10000)|0).toString(16).substring(1); };
+        return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
+      };
+      
+      var permit = function() {
+        var i, roles = [], originalFunction;
+        for (i = 0; i < arguments.length && !originalFunction; i++) {
+          if (typeof arguments[i] !== 'function') {
+            roles = roles.concat(arguments[i].split(/\s+/));
+          } else {
+            originalFunction = arguments[i];
+          }
+        }
+        if (originalFunction) {
+          var stateChartAction = function(thisArg, args) { originalFunction.apply(thisArg, args); };
+          var functionId = guid(), f = function() { sm.act(functionId, this, arguments); };
+          var obj = {};
+          obj[functionId] = stateChartAction;
+          
+          sm.when('root', obj);
+          
+          // disallow for all states besides root state
+          obj[functionId] = disallow;
+          for (i in sm._states) {
+            if (sm._states.hasOwnProperty(i) && i !== sm.root) {
+              sm.when(i, obj);
+            }
+          }
+          
+          // allow for specified roles
+          obj[functionId] = allow;
+          for (i = 0; i < roles.length; i++) {
+            // add role as state if not already existing
+            if (!sm.state(roles[i])) sm.add(roles[i]);
+            sm.when(roles[i], obj);
+          }
+          
+          // return the function surrogate
+          return f;
+        }
+        return null;
+      };
+      
+      /**
+        Authorize for a specific role.
+        @param role {String} the role to switch to.
+      */
+      permit.auth = function(role) {
+        if (!sm.state(role)) {
+          // if the role does not exist in the state manager,
+          // we need to create it and disallow all actions
+          var disallow = function() { return false;};
+          var disallowAll = {}, rootContext = sm.state(sm.root).context;
+          for (var i in rootContext) {
+            if (rootContext.hasOwnProperty(i)) disallowAll[i] = disallow;
+          }
+          sm.add(role).when(role, disallowAll);
+        }
+        sm.go(role);
+      };
+      
+      return permit;
+    }
+  };
 
   // TODO
   AppSeeds.DelegateSupport = {

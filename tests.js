@@ -1,4 +1,4 @@
-/*globals test asyncTest expect ok strictEqual stop start AppSeeds Seeds*/
+/*globals test asyncTest expect ok strictEqual stop start AppSeeds Seeds console*/
 
 module('AppSeeds');
 
@@ -411,4 +411,18 @@ asyncTest('Scheduler async: repeat + reset', function() {
   window.setTimeout(function() {
     start();
   }, 2000);
+});
+
+test('Permit basic setup', function() {
+  expect(1);
+  var permit = AppSeeds.Permit.create();
+  var myapp = {
+    doSomething: permit('admin', function() {
+      strictEqual(arguments.length, 3, 'all arguments received');
+    })
+  };
+  permit.auth('admin');
+  myapp.doSomething('a','b', 'c');
+  permit.auth('user');
+  myapp.doSomething('a','b', 'c');
 });
