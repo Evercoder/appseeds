@@ -5,9 +5,9 @@ module('AppSeeds');
 test('StateManager implied root state', function() {
 	var sm = AppSeeds.StateManager.create('state1 state2');
 	sm.go('state1');
-	strictEqual(sm.locate(), 'state1', 'state navigation');
+	strictEqual(sm.current, 'state1', 'state navigation');
 	sm.go('state2');
-	strictEqual(sm.locate(), 'state2', 'state navigation');
+	strictEqual(sm.current, 'state2', 'state navigation');
 	strictEqual(sm.state('state1').parent, 'root', 'implied root');
 	strictEqual(sm.state('state2').parent, 'root', 'implied root');
 });
@@ -230,7 +230,7 @@ test("StateManager.stay() to define default substate", function() {
   });
 
   sm.go('state1');
-  strictEqual(sm.locate(), 'state111', 'transitioned to state111');
+  strictEqual(sm.current, 'state111', 'transitioned to state111');
   sm.go('root');
 });
 
@@ -245,7 +245,7 @@ test("StateManager: defaultSubstate", function() {
   ]);
 
   sm.go('state1');
-  strictEqual(sm.locate(), 'state111', 'transitioned to state111');
+  strictEqual(sm.current, 'state111', 'transitioned to state111');
 });
 
 test("StateManager: overwrite defaultSubstate", function() {
@@ -260,7 +260,7 @@ test("StateManager: overwrite defaultSubstate", function() {
   ]);
 
   sm.go('state1');
-  strictEqual(sm.locate(), 'state121', 'transitioned to state121');
+  strictEqual(sm.current, 'state121', 'transitioned to state121');
 });
 
 test("StateManager: defaultSubstate for root", function() {
@@ -269,7 +269,7 @@ test("StateManager: defaultSubstate for root", function() {
   sm.add('state1 !state2');
   sm.go('state1').go('root');
 
-  strictEqual(sm.locate(), 'state2', 'transitioned to state2');
+  strictEqual(sm.current, 'state2', 'transitioned to state2');
 });
 
 test("StateManager.when(string, function) interpreted as stay() function", function() {
