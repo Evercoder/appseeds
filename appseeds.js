@@ -23,10 +23,12 @@
   AppSeeds.StateManager = {
     
     // name of the root state
-    rootState: 'root',
+    root: 'root',
     
-    // current state of the manager
-    _currentState: null,
+    /*
+      Current state. Should not be manually overwritten!
+    */
+    current: null,
     
     /*
       Keeps the collection of states.
@@ -37,6 +39,12 @@
         - context: collection of actions associated with that state
     */
     _states: {},
+  
+    /* 
+      The context of the current state, contains the actions and other 'private' methods
+      defined with when() for that state.
+    */
+    context: null,
   
     /**
       Create a new instance of State Manager.
@@ -55,15 +63,15 @@
       var stateManager = new C();
     
       // initialize internals
-      stateManager.rootState = 'root';
+      stateManager.root = 'root';
       stateManager._states = {};
-      stateManager.state(stateManager.rootState, {
+      stateManager.state(stateManager.root, {
         parent: null,
         context: {},
         defaultSubstate: null
       });
-      stateManager.context = stateManager.state(stateManager.rootState).context;
-      stateManager._currentState = stateManager.rootState;
+      stateManager.context = stateManager.state(stateManager.root).context;
+      stateManager.current = stateManager.root;
     
       options = options || {};
       if (typeof options === 'string' || Array.isArray(options)) {
@@ -94,6 +102,12 @@
       return route;
     },
     
+    /**
+      Get/set information about a state.
+      @param stateName {String} name of the state
+      @param val (Optional {Object} new value for state
+      @return state {Object} the representation of the state.
+    */
     state: function(stateName, val) {
       if (val !== undefined) this._states[stateName] = val;
       return this._states[stateName];
@@ -144,7 +158,7 @@
           childStates = [];
           break;
         case 1:
-          parentState = this.rootState;
+          parentState = this.root;
           childStates = tmp[0].split(/\s+/);
           break;
         case 2:
@@ -176,8 +190,8 @@
         console.warn('State ' + stateName + ' not defined');
         return;
       }
-      if (this._currentState !== stateName) {
-        var states = this._lca(this._currentState, stateName);
+      if (this.current !== stateName) {
+        var states = this._lca(this.current, stateName);
         var i, action;
       
         // exit to common ancestor
@@ -200,16 +214,16 @@
           }
         }
 
-        this._currentState = stateName;
+        this.current = stateName;
         
         // execute 'stay'
-        this.context = this.state(this._currentState).context;
+        this.context = this.state(this.current).context;
         if (this._isFunc(this.context.stay)) {
           this.context.stay.call(this);
         }
 
         // go to default substate
-        var defaultSubstate = this.state(this._currentState).defaultSubstate;
+        var defaultSubstate = this.state(this.current).defaultSubstate;
         if (defaultSubstate) this.go(defaultSubstate);
       }
       return this;
@@ -294,7 +308,7 @@
     */
     act: function() {
       // regenerate context to current state after bubbling up
-      this.context = this._act(this._currentState, arguments);
+      this.context = this._act(this.current, arguments);
       return this;
     },
 
@@ -381,14 +395,6 @@
         }
       }
       return this;
-    },
-  
-    /*
-      Get the current state.
-      @returns {String} current state
-    */
-    locate: function() {
-      return this._currentState;
     },
     
     /** @deprecated */
