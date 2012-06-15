@@ -28,8 +28,14 @@
     // current state of the manager
     _currentState: null,
     
-    // keeps the collection of states
-    // key: state name; value: hash of actions for the state
+    /*
+      Keeps the collection of states.
+      Key: state name
+      Value: Object:
+        - parent: parent state
+        - defaultSubstate: default substate
+        - context: collection of actions associated with that state
+    */
     _states: {},
   
     /**
@@ -91,6 +97,22 @@
     state: function(stateName, val) {
       if (val !== undefined) this._states[stateName] = val;
       return this._states[stateName];
+    },
+    
+    
+    /**
+      Returns the substates for a state.
+      @param stateName {String} state name
+      @return children {Array} array containing the names of the child states.
+    */
+    children: function(stateName) {
+      var substates = [];
+      for (var i in this._states) {
+        if (this._states.hasOwnProperty(i) && this._states[i].parent === stateName) {
+          substates.push(i);
+        }
+      }
+      return substates;
     },
   
     // find the LCA (Lowest Common Ancestors) between two states
@@ -233,17 +255,13 @@
               return;
             }
             if (this.state(childState)) {
-              console.warn('State ' + childState + ' was already defined and will be overwritten.');
+              console.warn('State ' + childState + ' is already defined. New state not added.');
             }
-            if (!this.state(childState)) {
-              this.state(childState, { 
-                context: {}, 
-                defaultSubstate: null,
-                parent: null
-              });
-            }
-            
-            this.state(childState).parent = parentState;
+            this.state(childState, { 
+              context: {}, 
+              defaultSubstate: null,
+              parent: parentState
+            });
             if (isDefaultSubstate) {
               if (this.state(parentState).defaultSubstate) {
                 console.warn('State ' + parentState + ' already has a default substate ' + this.state(parentState).defaultSubstate + ' which will be overwritten with ' + childState);

@@ -53,6 +53,15 @@ test("StateManager.add() variable number of parameters", function() {
   strictEqual(sm.state('state14').parent, 'state1', 'added correctly');
 });
 
+test("StateManager.children()", function() {
+  var sm = Seeds.StateManager.create();
+  sm.add('a b c', 'a -> a1 a2 a3', 'b -> b1');
+  strictEqual(sm.children('root').length, 3, 'root has 3 children');
+  strictEqual(sm.children('a').length, 3, 'a has 3 children');
+  strictEqual(sm.children('b').length, 1, 'b has 1 children');
+  strictEqual(sm.children('c').length, 0, 'c has 0 children');
+});
+
 test("StateManager.act() bubbling without return values", function() {
   expect(4);
   var sm = Seeds.StateManager.create('stateA stateB stateC');
