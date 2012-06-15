@@ -639,81 +639,79 @@
     create: function(options) {
             
       var sm = AppSeeds.StateManager.create('APPSEEDS_UNAUTH_STATE');
-      var permit = {};
-      
-      /**
-        Allow a function for a set of user roles.
-        @param roleStr {String} role or list of space-separated roles
-        @param originalFunction {Function} function to lock
-        @return lockedFunction {Function} the function protected based on role(s)
-      */
-      permit.allow = function(roleStr, originalFunction) {
-        var roles = roleStr.split(/\s+/), i;
-        if (typeof originalFunction === 'function') {
-          
-          var disallow = function(thisArg, args) { 
-            AppSeeds.delegate.apply(permit, ['didDisallow'].concat(Array.prototype.slice.call(args)));
-            return false; 
-          };
-          var allow = function(thisArg, args) {
-            AppSeeds.delegate.apply(permit, ['didAllow'].concat(Array.prototype.slice.call(args)));
-            return true;
-          };
-          
-          var stateChartAction = function(thisArg, args) { originalFunction.apply(thisArg, args); };
-          var functionId = AppSeeds.guid();
-          var f = function() { sm.act(functionId, this, arguments); };
-          var obj = {};
-          
-          // add action to root state
-          obj[functionId] = stateChartAction;
-          sm.when(sm.root, obj);
-          
-          // disallow for all states besides root state
-          obj[functionId] = disallow;
-          for (i in sm._states) {
-            if (sm._states.hasOwnProperty(i) && i !== sm.root) sm.when(i, obj);
+      var permit = {
+        /**
+          Allow a function for a set of user roles.
+          @param roleStr {String} role or list of space-separated roles
+          @param originalFunction {Function} function to lock
+          @return lockedFunction {Function} the function protected based on role(s)
+        */
+        allow: function(roleStr, originalFunction) {
+          var roles = roleStr.split(/\s+/), i;
+          if (typeof originalFunction === 'function') {
+
+            var disallow = function(thisArg, args) { 
+              AppSeeds.delegate.apply(permit, ['didDisallow'].concat(Array.prototype.slice.call(args)));
+              return false; 
+            };
+            var allow = function(thisArg, args) {
+              AppSeeds.delegate.apply(permit, ['didAllow'].concat(Array.prototype.slice.call(args)));
+              return true;
+            };
+
+            var stateChartAction = function(thisArg, args) { originalFunction.apply(thisArg, args); };
+            var functionId = AppSeeds.guid();
+            var f = function() { sm.act(functionId, this, arguments); };
+            var obj = {};
+
+            // add action to root state
+            obj[functionId] = stateChartAction;
+            sm.when(sm.root, obj);
+
+            // disallow for all states besides root state
+            obj[functionId] = disallow;
+            for (i in sm._states) {
+              if (sm._states.hasOwnProperty(i) && i !== sm.root) sm.when(i, obj);
+            }
+
+            // allow for specified roles
+            obj[functionId] = allow;
+            for (i = 0; i < roles.length; i++) {
+              // add role as state if not already existing
+              if (!sm.state(roles[i])) sm.add(roles[i]);
+              sm.when(roles[i], obj);
+            }
+            // return the locked function
+            return f;
           }
-          
-          // allow for specified roles
-          obj[functionId] = allow;
-          for (i = 0; i < roles.length; i++) {
-            // add role as state if not already existing
-            if (!sm.state(roles[i])) sm.add(roles[i]);
-            sm.when(roles[i], obj);
+          return null;
+        },
+        
+        /**
+          Authorize for a specific role.
+          @param role {String} the role to switch to.
+        */
+        auth: function(role) {
+          if (!sm.state(role)) {
+            // if the role does not exist in the state manager,
+            // we need to create it and disallow all actions
+            var disallow = function(thisArg, args) { 
+              AppSeeds.delegate.apply(permit, ['didDisallow'].concat(Array.prototype.slice(args)));
+              return false;
+            };
+            var disallowAll = {}, rootContext = sm.state(sm.root).context;
+            for (var i in rootContext) {
+              if (rootContext.hasOwnProperty(i)) disallowAll[i] = disallow;
+            }
+            sm.add(role).when(role, disallowAll);
           }
-          // return the locked function
-          return f;
+          sm.go(role);
         }
-        return null;
       };
       
-      /**
-        Authorize for a specific role.
-        @param role {String} the role to switch to.
-      */
-      permit.auth = function(role) {
-        if (!sm.state(role)) {
-          // if the role does not exist in the state manager,
-          // we need to create it and disallow all actions
-          var disallow = function(thisArg, args) { 
-            AppSeeds.delegate.apply(permit, ['didDisallow'].concat(Array.prototype.slice(args)));
-            return false;
-          };
-          var disallowAll = {}, rootContext = sm.state(sm.root).context;
-          for (var i in rootContext) {
-            if (rootContext.hasOwnProperty(i)) disallowAll[i] = disallow;
-          }
-          sm.add(role).when(role, disallowAll);
-        }
-        sm.go(role);
-      };
+      // apply options
+      if (typeof options === 'object') Seeds.extend(permit, options);
       
-      if (typeof options === 'object') {
-        for (var i in options) {
-          if (options.hasOwnProperty(i)) permit[i] = options[i];
-        }
-      }
       return permit;
     }
   };
@@ -726,6 +724,16 @@
   AppSeeds.guid = function() {
     var S4 = function() { return (((1+Math.random())*0x10000)|0).toString(16).substring(1); };
     return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
+  };
+  
+  AppSeeds.extend = function() {
+    var obj = arguments[0];
+    for (var i = 1; i < arguments.length; i++) {
+      var ext = arguments[i];
+      for (var j in ext) {
+        if (ext.hasOwnProperty(j)) obj[j] = ext[j];
+      }
+    }
   };
   
 })(this);
