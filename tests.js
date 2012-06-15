@@ -414,10 +414,11 @@ asyncTest('Scheduler async: repeat + reset', function() {
 });
 
 test('Permit basic setup', function() {
-  expect(1);
+  expect(2);
   var permit = AppSeeds.Permit.create();
   var myapp = {
     doSomething: permit('admin', function() {
+      ok('here!', 'entered method');
       strictEqual(arguments.length, 3, 'all arguments received');
     })
   };
@@ -425,4 +426,47 @@ test('Permit basic setup', function() {
   myapp.doSomething('a','b', 'c');
   permit.auth('user');
   myapp.doSomething('a','b', 'c');
+});
+
+test("Permit: self-delegation", function() {
+  expect(2);
+  var permit = AppSeeds.Permit.create({
+    didDisallow: function() {
+      ok('here!', 'did disallow');
+    },
+    didAllow: function() {
+      ok('here!', 'did allow');
+    }
+  });
+  
+  var myapp = {
+    doSomething: permit('admin', function() {})
+  };
+  permit.auth('admin');
+  myapp.doSomething();
+  permit.auth('user');
+  myapp.doSomething();
+});
+
+test("Permit: external delegate", function() {
+  expect(2);
+  var d = {
+    didDisallow: function() {
+      ok('here!', 'did disallow');
+    },
+    didAllow: function() {
+      ok('here!', 'did allow');
+    }
+  };
+  var permit = AppSeeds.Permit.create({
+    delegate: d
+  });
+  
+  var myapp = {
+    doSomething: permit('admin', function() {})
+  };
+  permit.auth('admin');
+  myapp.doSomething();
+  permit.auth('user');
+  myapp.doSomething();
 });

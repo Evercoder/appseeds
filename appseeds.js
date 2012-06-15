@@ -629,17 +629,16 @@
       After: with Permit
       var permit = Seeds.Permit.create();
       var myApp = {
-        method1: permit('admin', 'user', function(arg1, arg2, ... argN) {}),
+        method1: permit('admin user', function(arg1, arg2, ... argN) {}),
         method2: permit('user', function(arg1, arg2, ... argN) {});
       };
       
   */
   AppSeeds.Permit = {
 
-    create: function() {
+    create: function(options) {
             
       var sm = AppSeeds.StateManager.create('APPSEEDS_UNAUTH_STATE');
-      var disallow = function() { return false; }, allow = function() { return true; };
       
       var guid = function() {
         var S4 = function() { return (((1+Math.random())*0x10000)|0).toString(16).substring(1); };
@@ -656,6 +655,16 @@
           }
         }
         if (originalFunction) {
+          
+          var disallow = function() { 
+            AppSeeds.delegate.apply(permit, ['didDisallow'].concat(arguments));
+            return false; 
+          };
+          var allow = function() {
+            AppSeeds.delegate.apply(permit, ['didAllow'].concat(arguments));
+            return true;
+          };
+          
           var stateChartAction = function(thisArg, args) { originalFunction.apply(thisArg, args); };
           var functionId = guid(), f = function() { sm.act(functionId, this, arguments); };
           var obj = {};
@@ -693,7 +702,10 @@
         if (!sm.state(role)) {
           // if the role does not exist in the state manager,
           // we need to create it and disallow all actions
-          var disallow = function() { return false;};
+          var disallow = function() { 
+            AppSeeds.delegate.apply(permit, ['didDisallow'].concat(arguments));
+            return false;
+          };
           var disallowAll = {}, rootContext = sm.state(sm.root).context;
           for (var i in rootContext) {
             if (rootContext.hasOwnProperty(i)) disallowAll[i] = disallow;
@@ -703,21 +715,19 @@
         sm.go(role);
       };
       
+      if (typeof options === 'object') {
+        for (var i in options) {
+          if (options.hasOwnProperty(i)) permit[i] = options[i];
+        }
+      }
+      
       return permit;
     }
   };
 
-  // TODO
-  AppSeeds.DelegateSupport = {
-    delegate: null,
-    del: function(name) {
-      return this.delegate && typeof this.delegate[name] === 'function' ? 
-        this.delegate[name].apply(this, Array.prototype.slice.call(arguments, 1)) : true;
-    }
-  };
-
-  AppSeeds.Binder = {
-    // TODO DOM Binder of sorts.
+  AppSeeds.delegate = function(name) {
+    var delegate = this.delegate || this;
+    return typeof delegate[name] === 'function' ? delegate[name].apply(this, Array.prototype.slice.call(arguments, 1)) : true;
   };
   
 })(this);
