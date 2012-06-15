@@ -5,23 +5,22 @@
     <link rel='stylesheet' href='css/solarized-light.css' type='text/css' media='all'/>
     <style type='text/css'>
       body { font-family:'Helvetica','Arial', sans-serif;background:#fff;color:#333;line-height:1.4;}
-      body a { color:#c00; text-decoration:none; border-bottom:5px solid #eee;}
+      body a { color:#c00; text-decoration:none; border-bottom:1px solid #eee;}
       body a:hover {border-color:#ccc;}
       .get-started-item {
         float:left;
-        width:33.33%;
-        padding:10px;
+        width:50%;
+        padding-right:1em;
         -moz-box-sizing:border-box;-webkit-box-sizing:border-box;box-sizing:border-box;
-        border-right:5px solid #ccc;
-        height:30em;
+        border-left:none;
+        border-top:none;
+        height:28em;
       }
       .get-started-item:last-child { border-right:none; }
       
       h1 {color:#c00;font-size:3em;letter-spacing:-1px;}
       
       #page {width:80%;margin:1em auto;}
-      #get-started {border:5px solid #ccc;}
-      #get-started h2 {border-bottom:5px solid #ccc;margin:0;padding:10px;}
       #get-started h2 pre {font-weight:normal;display:inline;}
       
       .cf:after {content:'.';visibility:hidden;display:block;height:0;clear:both;}
@@ -39,7 +38,7 @@
           </p>
         </div>
         <div id='get-started' class='cf'>
-          <h2 class='cf'>Get started <pre><code data-language='javascript'>&lt;script type='text/javascript' src='appseeds.js' &gt;&lt;/script&gt;</code></pre></h2>
+          <h2 class='cf'>Get started: <pre><code data-language='javascript'>&lt;script type='text/javascript' src='appseeds.js' &gt;&lt;/script&gt;</code></pre></h2>
           <div class='get-started-item'>
             <h3>StateManager</h3>
             <p>Hierarchical state charts. <!--<a href='#'>More &rarr;</a>--></p>
@@ -57,13 +56,12 @@ var manager = Seeds.StateManager
   })
   .go('cat');
 
-manager.act('say'); 
-// meow!
+manager.act('say'); // meow!
 </code></pre>
           </div>
           <div class='get-started-item'>
             <h3>PubSub</h3>
-            <p>Publish/Subscribe communication. <!--<a href='#'>More &rarr;</a>--></p>
+            <p>Namespaced publish/subscribe communication. <!--<a href='#'>More &rarr;</a>--></p>
 <pre><code data-language='javascript'>
 var ps = Seeds.PubSub.create();
 
@@ -71,8 +69,7 @@ ps.sub('phonecall', function(who) {
   alert(who + ' called!');
 });
 
-ps.pub('phonecall', 'dan'); 
-// dan called!
+ps.pub('phonecall', 'dan'); // dan called!
 </code></pre>
           </div>
           <div class='get-started-item'>
@@ -86,6 +83,22 @@ var task = Seeds.Scheduler.create(
 task.delay(1000); // do it after 1s&hellip;
 task.stop(); // &hellip;or not
 task.reset(); // &hellip;or too!
+</code></pre>
+          </div>
+          
+          <div class='get-started-item'>
+            <h3>Permit</h3>
+            <p>Seamless permission management. <!--<a href='#'>More &rarr;</a>--></p>
+<pre><code data-language='javascript'>
+var permit = Seeds.Permit.create();
+var MyApp = {
+  // before...
+  poke: function(who) { /* do it */ },
+  // ...after
+  poke: permit.allow('owner', function(who) { /* do it */ })
+};
+permit.auth('guest');
+MyApp.call(); // won't do anything
 </code></pre>
           </div>
         </div>
