@@ -11,7 +11,7 @@
   
   // Semantic versioning
   // @see http://semver.org/
-  AppSeeds.version = '0.4.0';
+  AppSeeds.version = '0.5.0';
 
   // polyfills
   if(!Array.isArray) Array.isArray = function (vArg) { return Object.prototype.toString.call(vArg) === "[object Array]"; };
@@ -28,19 +28,9 @@
     // current state of the manager
     _currentState: null,
     
-    // TODO consolidate _allStates, _parentStates, _defaultSubstates into single hash
-    
     // keeps the collection of states
     // key: state name; value: hash of actions for the state
-    _allStates: {}, 
-  
-    // the state tree
-    // key: child state name; value: parent state name;
-    _parentStates: {},
-    
-    // default substates
-    // key: state name; value: default substate name;
-    _defaultSubstates: {}, // the default substate for each state
+    _states: {},
   
     /**
       Create a new instance of State Manager.
@@ -60,11 +50,13 @@
     
       // initialize internals
       stateManager.rootState = 'root';
-      stateManager._parentStates = {};
-      stateManager._allStates = {};
-      stateManager._defaultSubstates = {};
-      stateManager._allStates[stateManager.rootState] = stateManager.context = {};
-      stateManager._parentStates[stateManager.rootState] = null;
+      stateManager._states = {};
+      stateManager.state(stateManager.rootState, {
+        parent: null,
+        context: {},
+        defaultSubstate: null
+      });
+      stateManager.context = stateManager.state(stateManager.rootState).context;
       stateManager._currentState = stateManager.rootState;
     
       options = options || {};
@@ -91,9 +83,14 @@
       var route = [];
       while(stateName) {
         route.push(stateName);
-        stateName = this._parentStates[stateName];
+        stateName = this.state(stateName).parent;
       }
       return route;
+    },
+    
+    state: function(stateName, val) {
+      if (val !== undefined) this._states[stateName] = val;
+      return this._states[stateName];
     },
   
     // find the LCA (Lowest Common Ancestors) between two states
@@ -152,7 +149,7 @@
       @param stateName {String} the name of the state to which to transition.
     */
     go: function(stateName) {
-      var state = this._allStates[stateName];
+      var state = this.state(stateName);
       if (state === undefined) {
         console.warn('State ' + stateName + ' not defined');
         return;
@@ -163,7 +160,7 @@
       
         // exit to common ancestor
         for (i = 0; i < states.exits.length; i++) {
-          this.context = this._allStates[states.exits[i]];
+          this.context = this.state(states.exits[i]).context;
           if (this._isFunc(this.context.exit)) {
             if (this.context.exit.call(this) === false) {
               // TODO halt
@@ -173,7 +170,7 @@
       
         // enter to desired state
         for (i = 0; i < states.entries.length; i++) {
-          this.context = this._allStates[states.entries[i]];
+          this.context = this.state(states.entries[i]).context;
           if (this._isFunc(this.context.enter)) {
             if (this.context.enter.call(this) === false) {
               // TODO halt
@@ -184,13 +181,13 @@
         this._currentState = stateName;
         
         // execute 'stay'
-        this.context = this._allStates[this._currentState];
+        this.context = this.state(this._currentState).context;
         if (this._isFunc(this.context.stay)) {
           this.context.stay.call(this);
         }
 
         // go to default substate
-        var defaultSubstate = this._defaultSubstates[this._currentState];
+        var defaultSubstate = this.state(this._currentState).defaultSubstate;
         if (defaultSubstate) this.go(defaultSubstate);
       }
       return this;
@@ -231,20 +228,27 @@
             parentState = pairs[i][0];
             childState = pairs[i][1];
             isDefaultSubstate = pairs[i][2];
-            if (!this._allStates[parentState]) {
+            if (!this.state(parentState)) {
               console.warn('State ' + parentState + ' is not included in the tree. State not added.');
               return;
             }
-            if (this._allStates[childState]) {
+            if (this.state(childState)) {
               console.warn('State ' + childState + ' was already defined and will be overwritten.');
             }
-            this._allStates[childState] = {};
-            this._parentStates[childState] = parentState;
+            if (!this.state(childState)) {
+              this.state(childState, { 
+                context: {}, 
+                defaultSubstate: null,
+                parent: null
+              });
+            }
+            
+            this.state(childState).parent = parentState;
             if (isDefaultSubstate) {
-              if (this._defaultSubstates[parentState]) {
-                console.warn('State ' + parentState + ' already has a default substate ' + this._defaultSubstates[parentState] + ' which will be overwritten with ' + childState);
+              if (this.state(parentState).defaultSubstate) {
+                console.warn('State ' + parentState + ' already has a default substate ' + this.state(parentState).defaultSubstate + ' which will be overwritten with ' + childState);
               }
-              this._defaultSubstates[parentState] = childState;
+              this.state(parentState).defaultSubstate = childState;
             }
           }
         } else if (typeof stateConnection === 'object') {
@@ -280,11 +284,12 @@
       act recursively until action returns false; 
     */
     _act: function(state, args) {
-      this.context = this._allStates[state];
+      this.context = this.state(state).context;
       var action = this.context[args[0]];
       // break the chain on `return false;`
       if (this._isFunc(action) && action.apply(this, Array.prototype.slice.call(args, 1)) === false) return;
-      if (this._parentStates[state]) this._act(this._parentStates[state], args);   
+      var parentState = this.state(state).parent;
+      if (parentState) this._act(parentState, args);   
       return this.context;    
     },
   
@@ -338,7 +343,8 @@
         for (i = 0; i < states.length; i++) {
           var stateName = states[i];
           if (stateName) {
-            if (!this._allStates[stateName]) {
+            var state = this.state(stateName);
+            if (!state) {
               console.warn('State ' + stateName + ' doesn\'t exist. Actions not added.');
               return;
             }
@@ -348,8 +354,10 @@
               actions = { stay: actions };
             }
             
+            if (!state.context) state.context = {};
+            
             for (i in actions) {
-              if (actions.hasOwnProperty(i)) this._allStates[stateName][i] = actions[i];
+              if (actions.hasOwnProperty(i)) state.context[i] = actions[i];
             }
           }
         }

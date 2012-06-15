@@ -8,15 +8,15 @@ test('StateManager implied root state', function() {
 	strictEqual(sm.locate(), 'state1', 'state navigation');
 	sm.go('state2');
 	strictEqual(sm.locate(), 'state2', 'state navigation');
-	strictEqual(sm._parentStates['state1'], 'root', 'implied root');
-	strictEqual(sm._parentStates['state2'], 'root', 'implied root');
+	strictEqual(sm.state('state1').parent, 'root', 'implied root');
+	strictEqual(sm.state('state2').parent, 'root', 'implied root');
 });
 
 test("StateManager.add(<String>)", function(){
   var sm = Seeds.StateManager.create();
   sm.add('state1 state2');
   sm.add('state1 -> state11 state12');
-  strictEqual(sm._parentStates['state11'], 'state1', 'added correctly');
+  strictEqual(sm.state('state11').parent, 'state1', 'added correctly');
 });
 
 test("StateManager.add(<Array>)", function(){
@@ -25,7 +25,7 @@ test("StateManager.add(<Array>)", function(){
     'state1 state2',
     'state1 -> state11 state12'
   ]);
-  strictEqual(sm._parentStates['state11'], 'state1', 'added correctly');
+  strictEqual(sm.state('state11').parent, 'state1', 'added correctly');
 });
 
 test("StateManager.add(<Object>)", function(){
@@ -34,7 +34,7 @@ test("StateManager.add(<Object>)", function(){
     'root': 'state1 state2 state3',
     'state1': 'state11 state12'
   });
-  strictEqual(sm._parentStates['state11'], 'state1', 'added correctly');
+  strictEqual(sm.state('state11').parent, 'state1', 'added correctly');
 });
 
 test("StateManager.add() variable number of parameters", function() {
@@ -47,10 +47,10 @@ test("StateManager.add() variable number of parameters", function() {
       'state2': 'state23 state24'
     }
   );
-  strictEqual(sm._parentStates['state11'], 'state1', 'added correctly');
-  strictEqual(sm._parentStates['state12'], 'state1', 'added correctly');
-  strictEqual(sm._parentStates['state13'], 'state1', 'added correctly');
-  strictEqual(sm._parentStates['state14'], 'state1', 'added correctly');
+  strictEqual(sm.state('state11').parent, 'state1', 'added correctly');
+  strictEqual(sm.state('state12').parent, 'state1', 'added correctly');
+  strictEqual(sm.state('state13').parent, 'state1', 'added correctly');
+  strictEqual(sm.state('state14').parent, 'state1', 'added correctly');
 });
 
 test("StateManager.act() bubbling without return values", function() {
