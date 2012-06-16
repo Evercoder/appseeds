@@ -420,11 +420,13 @@
     /** 
       Create a PubSub instance.
     */
-    create: function() {
+    create: function(options) {
       var C = function() {};
       C.prototype = this;
       var ps = new C();
-      ps._pubsubEvents = {};
+      Seeds.extend(ps, options, {
+        _pubsubEvents: {}
+      });
       return ps;
     },
 
@@ -545,20 +547,38 @@
       var C = function() {};
       C.prototype = this;
       var schedule = new C();
-      schedule.callback = callback;
-      schedule.args = args || [];
-      schedule.thisArg = thisArg || this;
-      schedule.timeout = null;
-      schedule.interval = null;
-      schedule._timerId = null;
+      Seeds.extend(schedule, {
+        callback: callback,
+        args: args || [],
+        thisArg: thisArg || this,
+        timeout: null,
+        interval: null,
+        limit: null,
+        _lastCalled: (new Date()).getTime(),
+        _timerId: null
+      });
       return schedule;
     },
     
     /**
-      Execute scheduled task immediately.
+      Execute scheduled task immediately, taking into account the throttling limit if applicable.
     */
     now: function() {
-      this.callback.apply(this.thisArg, this.args);
+      var now = (new Date()).getTime();
+      if (!this.limit || (now - this._lastCalled > this.limit)) {
+        this.callback.apply(this.thisArg, this.args);
+        this._lastCalled = now;
+      }
+      return this;
+    },
+
+    /**
+      Limit the execution frequency of a task.
+      Use limit(0) / limit(null) to get rid of the limit.
+      @param limit {Number} maximum execution frequency in milliseconds
+    */
+    throttle: function(limit) {
+      this.limit = limit;
       return this;
     },
     
@@ -731,10 +751,13 @@
     var obj = arguments[0];
     for (var i = 1; i < arguments.length; i++) {
       var ext = arguments[i];
-      for (var j in ext) {
-        if (ext.hasOwnProperty(j)) obj[j] = ext[j];
+      if (ext) {
+        for (var j in ext) {
+          if (ext.hasOwnProperty(j)) obj[j] = ext[j];
+        }
       }
     }
+    return obj;
   };
   
 })(this);

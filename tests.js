@@ -385,11 +385,12 @@ asyncTest('Scheduler async: delay + reset', function() {
   });
   schedule.delay(200);
   var i = 0;
-  window.setInterval(function() {
+  var interval = window.setInterval(function() {
     if (i++ < 10) schedule.reset();
   }, 100);
   
-  window.setInterval(function() {
+  window.setTimeout(function() {
+    window.clearInterval(interval);
     start();
   }, 1200);
 });
@@ -401,7 +402,7 @@ asyncTest('Scheduler async: repeat + reset', function() {
   });
   schedule.repeat(100);
   var i = 0;
-  window.setInterval(function() {
+  var interval = window.setInterval(function() {
     if (i++ < 6) schedule.reset();
   }, 50);
   window.setTimeout(function() {
@@ -409,8 +410,24 @@ asyncTest('Scheduler async: repeat + reset', function() {
   }, 850);
   
   window.setTimeout(function() {
+    window.clearInterval(interval);
     start();
   }, 2000);
+});
+
+asyncTest('Scheduler.throttle()', function() {
+  expect(3);
+  var task = AppSeeds.Scheduler.create(function() {
+    ok('here', 'callback executed');
+  }).throttle(1000);
+  var interval = window.setInterval(function() {
+    task.now();
+  }, 50);
+
+  window.setTimeout(function() {
+    window.clearInterval(interval);
+    start();
+  }, 3100);
 });
 
 test('Permit basic setup', function() {
