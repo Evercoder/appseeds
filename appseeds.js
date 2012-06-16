@@ -525,7 +525,7 @@
       @returns an AppSeeds.Scheduler instance.
     */
     schedule: function() {
-      return AppSeeds.Scheduler.create(this.pub, arguments, this);
+      return AppSeeds.Scheduler.create.apply(AppSeeds.Scheduler, [this.pub, this].concat(Array.prototype.slice.call(arguments)));
     }
   };
 
@@ -538,18 +538,20 @@
       Create a scheduled task.
       
       @param callback {Function} the task to schedule
-      @param (Optional) args {Array} an array of arguments to pass to the task upon execution
       @param (Optional) thisArg {Object} the context for the scheduled task
-      
-      @returns an AppSeeds.Scheduler instance.
+      @param (Optional) arg1
+      ...
+      @param (Optional) argN
+
+      @return an AppSeeds.Scheduler instance.
     */
-    create: function(callback, args, thisArg) {
+    create: function(callback, thisArg) {
       var C = function() {};
       C.prototype = this;
       var schedule = new C();
       Seeds.extend(schedule, {
         callback: callback,
-        args: args || [],
+        args: Array.prototype.slice.call(arguments, 2),
         thisArg: thisArg || this,
         timeout: null,
         interval: null,
@@ -566,7 +568,7 @@
     now: function() {
       var now = (new Date()).getTime();
       if (!this.limit || (now - this._lastCalled > this.limit)) {
-        this.callback.apply(this.thisArg, this.args);
+        this.callback.apply(this.thisArg, arguments.length ? arguments : this.args);
         this._lastCalled = now;
       }
       return this;

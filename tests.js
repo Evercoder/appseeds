@@ -370,12 +370,23 @@ test('PubSub: nested namespaces', function() {
   ps.pub('parent:child:event');
 });
 
-test('Scheduler sync behavior', function() {
+test("PubSub.schedule() sync behavior", function() {
   expect(1);
+  var ps = AppSeeds.PubSub.create();
+  ps.sub('event', function() {
+    strictEqual(arguments.length, 3, 'correct number of arguments');
+  })
+  ps.schedule('event', 1, 2, 3).now();
+});
+
+test('Scheduler sync behavior', function() {
+  expect(2);
   var schedule = AppSeeds.Scheduler.create(function() {
     ok('here', 'callback executed!');
+    strictEqual(arguments.length, 3, 'correct arguments');
+    // strictEqual(this, self, 'correct thisArg');
   });
-  schedule.now();
+  schedule.now(1,2,3);
 });
 
 asyncTest('Scheduler async: delay + reset', function() {
@@ -427,7 +438,7 @@ asyncTest('Scheduler.throttle()', function() {
   window.setTimeout(function() {
     window.clearInterval(interval);
     start();
-  }, 3100);
+  }, 3200);
 });
 
 test('Permit basic setup', function() {
