@@ -370,6 +370,20 @@ test('PubSub: nested namespaces', function() {
   ps.pub('parent:child:event');
 });
 
+test('PubSub.recoup()', function() {
+  expect(4);
+  var ps = AppSeeds.PubSub.create();
+  ps.pub('event1', 1, 2, 3);
+  ps.pub('event2', 1, 2, 3);
+  ps.recoup('event1', function() {
+    strictEqual(arguments.length, 3, 'correct args');
+  });
+  ps.recoup('event1', function() {
+    strictEqual(arguments.length, 3, 'correct args');
+  });
+  ps.pub('event1', 3,4,5);
+});
+
 test("PubSub.schedule() sync behavior", function() {
   expect(1);
   var ps = AppSeeds.PubSub.create();
@@ -435,6 +449,18 @@ asyncTest('Scheduler.throttle()', function() {
     task.now();
   }, 50);
 
+  window.setTimeout(function() {
+    window.clearInterval(interval);
+    start();
+  }, 3200);
+});
+
+asyncTest('Scheduler.throttled()', function() {
+  expect(3);
+  var f = AppSeeds.Scheduler.throttled(function(){
+    ok('here');    
+  }, 1000);
+  var interval = window.setInterval(f, 50);
   window.setTimeout(function() {
     window.clearInterval(interval);
     start();

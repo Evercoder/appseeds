@@ -425,7 +425,8 @@
       C.prototype = this;
       var ps = new C();
       Seeds.extend(ps, options, {
-        _pubsubEvents: {}
+        _pubsubEvents: {},
+        _pubsubHappened: {}
       });
       return ps;
     },
@@ -438,20 +439,18 @@
     */
     pub: function(eventString) {
       var eventComponents = this._parseEventNamespace(eventString);
-      var eventArray, j, args, subscriber, ret, event;
-      for (var i = 0; i < eventComponents.length; i++) {
-        event = eventComponents[i];
-        eventArray = this._pubsubEvents[event];
-        if (eventArray) {
-          args = Array.prototype.slice.call(arguments, 1);
-          for (j = 0; j < eventArray.length; j++) {
-            subscriber = eventArray[j];
-            ret = subscriber[0].apply(subscriber[1] || this, args);
-            if (subscriber[2] && ret !== false) {
-              this.unsub(event, subscriber[0]);
-            }
+      var eventArray, i, ilen, j, jlen, args, subscriber, ret, event;
+      for (i = 0, ilen = eventComponents.length; i < ilen; i++) {
+        eventArray = this._pubsubEvents[event = eventComponents[i]] || [];
+        args = Array.prototype.slice.call(arguments, 1);
+        for (j = 0, jlen = eventArray.length; j < jlen; j++) {
+          subscriber = eventArray[j];
+          ret = subscriber[0].apply(subscriber[1] || this, args);
+          if (subscriber[2] && ret !== false) {
+            this.unsub(event, subscriber[0]);
           }
         }
+        this._pubsubHappened[event] = args;
       }
       return this;
     },
@@ -473,17 +472,22 @@
       @param eventStr {String} the event to subscribe to or list of space-separated events.
       @param method {Function} the method to run when the event is triggered
       @param (Optional) thisArg {Object} 'this' context for the method
-      @param (Optional) isOnce {Boolean} if true, subscriber will self-unsubscribe after first (successful) execution
+      @param (Optional) flags {Object} 
+        - once: if true, subscriber will self-unsubscribe after first (successful) execution
+        - recoup: execute subscriber immediately if the event already happened at least once 
     */
-    sub: function(eventStr, method, thisArg, isOnce) {
-      var events = eventStr.split(/\s+/), event, eventArray, i;
-      for (i = 0; i < events.length; i++) {
-        event = events[i];
-        eventArray = this._pubsubEvents[event];
+    sub: function(eventStr, method, thisArg, flags) {
+      var events = eventStr.split(/\s+/), event, eventArray, i, len, oldArgs;
+      flags = flags || { once: false, recoup: false };
+      for (i = 0, len = events.length; i < len; i++) {
+        eventArray = this._pubsubEvents[event = events[i]];
         if (eventArray) {
-          eventArray.push([method, thisArg, isOnce]);
+          eventArray.push([method, thisArg, flags.once]);
         } else {
-          this._pubsubEvents[event] = [[method, thisArg, isOnce]];
+          this._pubsubEvents[event] = [[method, thisArg, flags.once]];
+        }
+        if (flags.recoup && (oldArgs = this._pubsubHappened[event])) {
+          method.apply(thisArg || this, oldArgs);
         }
       }
       return this;
@@ -516,7 +520,20 @@
       @param thisArg (Optional) {Object} the context to pass to the function
     */
     once: function(eventStr, method, thisArg) {
-      return this.sub(eventStr, method, thisArg, true);
+      return this.sub(eventStr, method, thisArg, { once: true });
+    },
+
+
+    /** 
+      Subscribe to an event, and execute immediately if that event was ever published before.
+      If executed immediately, the subscriber will get as parameters the last values sent with the event.
+
+      @param eventStr {String} the event to subscribe to or list of space-separated events.
+      @param method {Function} the function to subscribe
+      @param thisArg (Optional) {Object} the context to pass to the function
+    */
+    recoup: function(eventStr, method, thisArg) {
+      return this.sub(eventStr, method, thisArg, { recoup: true });
     },
     
     /**
@@ -583,6 +600,18 @@
       this.limit = limit;
       return this;
     },
+
+    /**
+      Static convenience method to get a throttled version of a function.
+      @param callback {Function} the function to throttle
+      @param limit {Number} maximum executiin frequency in milliseconds
+
+      @return throttledFunction {Function} throttled function, ready to use in other contexts.
+    */
+    throttled: function(callback, limit) {
+      var task = Seeds.Scheduler.create(callback).throttle(limit);
+      return function() { task.now(); }
+    },
     
     /**
       Reset the timer of the schedule task, effectively postponing its execution.
@@ -608,7 +637,7 @@
       this._timerId = window.setTimeout(function() { that.now(); }, timeout);
       return this;
     },
-    
+
     /**
       Repeat the execution of the task each N milliseconds.
       @param interval {Number} the frequency of execution, in milliseconds
