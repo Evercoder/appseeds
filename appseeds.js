@@ -1,26 +1,35 @@
-/**
-  AppSeeds (c) 2012 Dan Burzo
-  AppSeeds can be freely distributed under the MIT license.
-  http://github.com/danburzo/appseeds
-*/
-
-/*globals exports define require console*/
 (function(){
+
+  var root = this;
+
   // for CommonJS and the browser
-  var AppSeeds = typeof exports !== 'undefined' ? exports : (this.AppSeeds = this.Seeds = {});
+  var AppSeeds, Seeds;
+  if (typeof exports !== 'undefined') {
+    AppSeeds = Seeds = exports;
+  } else {
+    AppSeeds = Seeds = root.AppSeeds = root.Seeds = {}
+  };
   
   // Semantic versioning
   // @see http://semver.org/
   AppSeeds.version = '0.6.0';
 
   // polyfills
-  if(!Array.isArray) Array.isArray = function (vArg) { return Object.prototype.toString.call(vArg) === "[object Array]"; };
-  if(!Array.prototype.indexOf) Array.prototype.indexOf=function(a,b,c){for(c=this.length,b=(c+~~b)%c;b<c&&(!(b in this)||this[b]!==a);b++);return b^c?b:-1;};
-  if(!Array.prototype.filter) Array.prototype.filter=function(a,b,c,d,e){c=this;d=[];for(e in c)~~e+''==e&&e>=0&&a.call(b,c[e],+e,c)&&d.push(c[e]);return d};
-  /**
-    @class
-    AppSeeds.StateManager
-  */
+  if(!Array.isArray) {
+    Array.isArray = function (vArg) { return Object.prototype.toString.call(vArg) === "[object Array]"; };
+  }
+  if(!Array.prototype.indexOf) {
+    Array.prototype.indexOf = function(a,b,c){ 
+      for(c=this.length,b=(c+~~b)%c;b<c&&(!(b in this)||this[b]!==a);b++);
+      return b^c?b:-1;
+    };
+  if(!Array.prototype.filter) {
+    Array.prototype.filter = function(a,b,c,d,e) {
+      c=this;d=[];for(e in c)~~e+''==e&&e>=0&&a.call(b,c[e],+e,c)&&d.push(c[e]);
+      return d;
+    };
+  }
+
   AppSeeds.StateManager = {
     
     // name of the root state
@@ -173,7 +182,13 @@
       }
       var pairs = [], childState, defaultSubstateRegex = /^!/;
       for (var i = 0; i < childStates.length; i++) {
-        if (childStates[i]) pairs.push([parentState, childStates[i].replace(defaultSubstateRegex, ''), defaultSubstateRegex.test(childStates[i])]);
+        if (childStates[i]) {
+          pairs.push([
+            parentState, 
+            childStates[i].replace(defaultSubstateRegex, ''), 
+            defaultSubstateRegex.test(childStates[i])
+          ]);
+        }
       }
       return pairs;
     },
@@ -279,7 +294,8 @@
             });
             if (isDefaultSubstate) {
               if (this.state(parentState).defaultSubstate) {
-                console.warn('State ' + parentState + ' already has a default substate ' + this.state(parentState).defaultSubstate + ' which will be overwritten with ' + childState);
+                console.warn('State %s already has a default substate %s which will be overwritten with %s', 
+                  parentState, this.state(parentState).defaultSubstate, childState);
               }
               this.state(parentState).defaultSubstate = childState;
             }
@@ -361,7 +377,8 @@
       @param stateString {String/Object} a string representing:
         - a state name (usage A)
         - a list of space-separated state names (usage B)      
-        - a hash where the key is a state name / space-separated state names, and the value is the actions object (usage C)
+        - a hash where the key is a state name / space-separated state names, 
+          and the value is the actions object (usage C)
       @param actions {Object/Function} list of actions to attach to the state(s)
         - Note: if function, will be interpreted as `stay`
     */
@@ -542,7 +559,10 @@
       @returns an AppSeeds.Scheduler instance.
     */
     schedule: function() {
-      return AppSeeds.Scheduler.create.apply(AppSeeds.Scheduler, [this.pub, this].concat(Array.prototype.slice.call(arguments)));
+      return AppSeeds.Scheduler.create.apply(
+        AppSeeds.Scheduler, 
+        [this.pub, this].concat(Array.prototype.slice.call(arguments))
+      );
     }
   };
 
@@ -770,7 +790,10 @@
 
   AppSeeds.delegate = function() {
     var delegate = this.delegate || this;
-    return typeof delegate[arguments[0]] === 'function' ? delegate[arguments[0]].apply(this, Array.prototype.slice.call(arguments, 1)) : true;
+    if (typeof delegate[arguments[0]] === 'function') {
+      return delegate[arguments[0]].apply(this, Array.prototype.slice.call(arguments, 1));
+    }
+    return true;
   };
   
   AppSeeds.guid = function() {
