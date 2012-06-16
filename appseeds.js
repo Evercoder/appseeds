@@ -15,7 +15,8 @@
 
   // polyfills
   if(!Array.isArray) Array.isArray = function (vArg) { return Object.prototype.toString.call(vArg) === "[object Array]"; };
-
+  if(!Array.prototype.indexOf) Array.prototype.indexOf=function(a,b,c){for(c=this.length,b=(c+~~b)%c;b<c&&(!(b in this)||this[b]!==a);b++);return b^c?b:-1;};
+  if(!Array.prototype.filter) Array.prototype.filter=function(a,b,c,d,e){c=this;d=[];for(e in c)~~e+''==e&&e>=0&&a.call(b,c[e],+e,c)&&d.push(c[e]);return d};
   /**
     @class
     AppSeeds.StateManager
@@ -162,7 +163,7 @@
           childStates = tmp[0].split(/\s+/);
           break;
         case 2:
-          parentState = tmp[0].trim();
+          parentState = tmp[0].replace(/^\s\s*/, '').replace(/\s\s*$/, ''); // trim
           childStates = tmp[1].split(/\s+/);
           break;
         default: 
