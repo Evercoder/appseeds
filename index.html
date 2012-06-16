@@ -37,14 +37,14 @@
               Download <a href='https://github.com/danburzo/appseeds/zipball/master'>zip</a>, <a href='https://github.com/danburzo/appseeds/tarball/master'>tar</a>.
               (MIT License)
           </p>
-          <p>Read the <a href='docs/appseeds.html'>annotated source code</a> for the complete API reference.</p>
+          <p>Works with Firefox, Chrome, Internet Explorer 7+, Safari and Opera.</p>
         </div>
         <div id='get-started' class='cf'>
           <h2 class='cf'>Get started</h2>
           <pre><code data-language='javascript'>&lt;script type='text/javascript' src='appseeds.js'&gt;&lt;/script&gt;</code></pre>
           <div class='get-started-item'>
             <h3>StateManager</h3>
-            <p>Hierarchical state charts. <!--<a href='#'>More &rarr;</a>--></p>
+            <p>Hierarchical state charts. <a href='#api-statemanager'>More &rarr;</a></p>
 <pre><code data-language='javascript'>
 var manager = Seeds.StateManager
   .create('dog cat bird')
@@ -64,7 +64,7 @@ manager.act('say'); // meow!
           </div>
           <div class='get-started-item'>
             <h3>PubSub</h3>
-            <p>Fast publish/subscribe communication with support for namespaced events. <!--<a href='#'>More &rarr;</a>--></p>
+            <p>Fast publish/subscribe communication with support for namespaced events. <a href='#api-pubsub'>More &rarr;</a></p>
 <pre><code data-language='javascript'>
 var ps = Seeds.PubSub.create();
 
@@ -77,7 +77,7 @@ ps.pub('phonecall', 'dan'); // dan called!
           </div>
           <div class='get-started-item'>
             <h3>Scheduler</h3>
-            <p>Simple interface to timeouts and intervals. <!--<a href='#'>More &rarr;</a>--></p>
+            <p>Simple interface to timeouts and intervals. <a href='#api-scheduler'>More &rarr;</a></p>
 <pre><code data-language='javascript'>
 var task = Seeds.Scheduler.create(
   function() { /* do something */ }
@@ -91,7 +91,7 @@ task.reset(); // &hellip;or too!
           
           <div class='get-started-item'>
             <h3>Permit</h3>
-            <p>Conditionally allow function execution. <!--<a href='#'>More &rarr;</a>--></p>
+            <p>Seamless permission management. <a href='#api-permit'>More &rarr;</a></p>
 <pre><code data-language='javascript'>
 var permit = Seeds.Permit.create();
 var MyApp = {
@@ -106,7 +106,71 @@ MyApp.poke(); // won't do anything
           </div>
         </div>
         
-        <p>Works with Firefox (Win/Mac), Chrome (Win/Mac), Internet Explorer 7+, Safari (Win/Mac) and Opera.</p>
+        <h2>API Reference</h2>
+
+        <h3 id='api-statemanager'>Seeds.StateManager</h3>
+        <p>Implements hierarchical state charts, a great way to organize your application and iron out inconsistent behavior.</p>
+
+        <h4>Main methods</h4>
+        <div>
+          <code data-language='javascript'>create()</code> create a new instance of StateManager.
+        </div>
+        <div>
+          <code data-language='javascript'>add(states)</code> add states to your state manager.
+          <h5>Examples:</h5>
+          <pre><code data-language='javascript'>
+manager.add('stateA stateB stateC'); // added as substates of 'root' (implicit parent state)
+manager.add('stateA -> stateA1 stateA2'); // added as substates of 'stateA' (explicit parent state)
+manager.add('stateB -> stateB1', 'stateC -> stateC1 stateC2') // add() accepts any number of arguments&hellip;
+manager.add({
+  'stateB1': 'stateB1_normal stateB1_special',
+  'stateC1': 'stateC1_normal stateC1_special'
+}); // even defined as hash
+manager.add('A -> A1 !A2 A3'); // `A2` will be the default substate of `A`
+          </code></pre>
+        </div>
+
+        <div>
+          <p><strong>when(stateName, actions)</strong> define actions for specific states in the manager.</p>
+          <p>There are three properties with special meaning:</p>
+          <ul>
+            <li><em>enter</em> defines the behavior for when the state manager transitions into the state.</li>
+            <li><em>exit</em> defines the behavior for when the state manager transitions out of the state.</li>
+            <li><em>stay</em> defines the behavior for when the state manager transitions into the state and the state is the actual destination as opposed to a transitory state.</li>
+          </ul>
+          <h5>Examples:</h5>
+          <pre><code data-language='javascript'>
+manager.when('stateA', {
+  enter: function() { /* get things ready for stateA */ },
+  exit: function() { /* clean after stateA */}
+});        
+
+// you can also define actions for multiple states at a time
+manager.when({
+  'stateA': {
+    enter: function() {},
+    exit: function() {},
+    doSomething: function() {}
+  },
+  'stateB': {
+    enter: function() {},
+    exit: function() {},
+    doSomeOtherThing: function() {}
+  }
+});
+          </code></pre>
+        <div>
+          <p><strong>go(stateName)</strong> transition to a state in the manager.</p>
+          <p>When moving from one state to another, the manager bubbles up from the initial state up to the lowest common ancestor state&mdash;calling the <em>exit()</em> method for each state (if present)&mdash;then descends into the destination state, calling the <em>enter()</em> method for each state. Finally it calls the <em>stay()</em> method of the destination state.</p>
+          <p>If the destination state has a default substate (see <em>add()</em> for how to define default substates), it will transition to that state.</p>
+        </div>
+        <p><strong>act()</strong> perform an action.</p>
+
+        <h4>Miscellaneous properties</h4>
+        <p>You usually don't need to use there, but for the sake of completeness, here they are: </p>
+        <p><strong>current</strong> the name of the current state. Should never be manually overwritten. </p>
+        <p><strong>state()</strong> get information about a specific state.</p>
+        <p><strong>children()</strong> get the substates of a specific state.</p>
       </div>
   </body>
 </html>
