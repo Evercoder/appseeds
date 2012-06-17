@@ -9,7 +9,7 @@ module.exports = function(grunt) {
       options: { browser: true }
     },
     qunit: {
-      index: ['test.html']
+      index: ['test/test.html']
     }
   });
 
