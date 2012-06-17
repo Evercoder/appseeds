@@ -677,12 +677,13 @@
   // Seeds.Permit
   // ============
   // Permit allows you to manage user permissions for various functions in your application.
-  // TODO: Currently depends on *Seeds.StateManager*, but it should be an independent module.
   AppSeeds.Permit = {
 
     create: function(options) {
-            
-      var sm = AppSeeds.StateManager.create('APPSEEDS_UNAUTH_STATE');
+      
+      var _functions = {};
+      var _auth = [];
+
       var permit = {
         
         // Allow a function for a set of user roles.
@@ -694,42 +695,29 @@
         // Returns a protected version of the function, that can be only called when 
         // authenticated with a compatible role (see *Permit.auth()*).
         allow: function(roleStr, originalFunction) {
-          var roles = roleStr.split(/\s+/), i;
+          var roles = roleStr.split(/\s+/), i, fId;
           if (typeof originalFunction === 'function') {
-
-            var disallow = function(thisArg, args) { 
-              AppSeeds.delegate.apply(permit, ['didDisallow'].concat(Array.prototype.slice.call(args)));
-              return false; 
-            };
-            var allow = function(thisArg, args) {
-              AppSeeds.delegate.apply(permit, ['didAllow'].concat(Array.prototype.slice.call(args)));
-              return true;
-            };
-
-            var stateChartAction = function(thisArg, args) { originalFunction.apply(thisArg, args); };
-            var functionId = AppSeeds.guid();
-            var f = function() { sm.act(functionId, this, arguments); };
-            var obj = {};
-
-            // Add this action to the root state.
-            obj[functionId] = stateChartAction;
-            sm.when(sm.root, obj);
-
-            // Disallow this action for all states except for root.
-            obj[functionId] = disallow;
-            for (i in sm._states) {
-              if (sm._states.hasOwnProperty(i) && i !== sm.root) sm.when(i, obj);
+            for (i in _functions) {
+              if (_functions.hasOwnProperty(i) && _functions[i].func === originalFunction) {
+                fId = i;
+                break;
+              }
+            } 
+            if (!fId) {
+              _functions[fId = AppSeeds.guid()] = { func: originalFunction, roles: roles };
             }
-
-            // Allow action for the role(s) specified.
-            obj[functionId] = allow;
-            for (i = 0; i < roles.length; i++) {
-              // If the role is inexistent, add it as a new state in the manager.
-              if (!sm.state(roles[i])) sm.add(roles[i]);
-              sm.when(roles[i], obj);
-            }
-            // Return the locked function.
-            return f;
+            return function() {
+              var f = _functions[fId];
+              for (var i = 0; i < _auth.length; i++) {
+                if (f.roles.indexOf(_auth[i]) > -1) {
+                  /* allow */
+                  Seeds.delegate.apply(permit, ['didAllow'].concat(Array.prototype.slice.call(arguments)));
+                  return f.func.apply(this, arguments);
+                }
+              }
+              /* disallow */
+              Seeds.delegate.apply(permit, ['didDisallow'].concat(Array.prototype.slice.call(arguments)));
+            };
           }
           return null;
         },
@@ -737,22 +725,11 @@
         // Authenticate as a specific role.
         //
         //  * **auth(role)**
-        //    * *role* a string describing the role
-        auth: function(role) {
-          if (!sm.state(role)) {
-            // If the role does not exist in the state manager yet,
-            // we need to create it and disallow all actions.
-            var disallow = function(thisArg, args) { 
-              AppSeeds.delegate.apply(permit, ['didDisallow'].concat(Array.prototype.slice(args)));
-              return false;
-            };
-            var disallowAll = {}, rootContext = sm.state(sm.root).context;
-            for (var i in rootContext) {
-              if (rootContext.hasOwnProperty(i)) disallowAll[i] = disallow;
-            }
-            sm.add(role).when(role, disallowAll);
-          }
-          sm.go(role);
+        //    * *role* a string describing the role; alternatively, an array of strings.
+        auth: function(roles) {
+          if (Array.isArray(roles)) roles = roles.join(' ');
+          _auth = roles.split(/\s+/);
+          return this;
         }
       };
       
