@@ -334,6 +334,20 @@ test('PubSub.sub() to multiple events, .once() to multiple events', function() {
   ps.pub('topic1').pub('topic2').pub('topic3');
 });
 
+test('PubSub.unsub()', function() {
+  expect(2);
+  var ps = Seeds.PubSub.create();
+  var f = function() {
+    ok('here!', 'subscriber executed');
+  };
+  ps.sub('event1 event2', f);
+  ps.pub('event1');
+  ps.unsub('event2', f);
+  ps.pub('event1');
+  ps.unsub('event1', f);
+  ps.pub('event1');
+});
+
 test('PubSub: namespaced events', function() {
   expect(2);
   var ps = AppSeeds.PubSub.create();
@@ -389,7 +403,7 @@ test("PubSub.schedule() sync behavior", function() {
   var ps = AppSeeds.PubSub.create();
   ps.sub('event', function() {
     strictEqual(arguments.length, 3, 'correct number of arguments');
-  })
+  });
   ps.schedule('event', 1, 2, 3).now();
 });
 
@@ -417,7 +431,7 @@ asyncTest('Scheduler async: delay + reset', function() {
   window.setTimeout(function() {
     window.clearInterval(interval);
     start();
-  }, 1200);
+  }, 1300);
 });
 
 asyncTest('Scheduler async: repeat + reset', function() {
@@ -432,7 +446,7 @@ asyncTest('Scheduler async: repeat + reset', function() {
   }, 50);
   window.setTimeout(function() {
     schedule.stop();
-  }, 850);
+  }, 890);
   
   window.setTimeout(function() {
     window.clearInterval(interval);

@@ -23,14 +23,13 @@
   if (typeof exports !== 'undefined') {
     AppSeeds = Seeds = exports;
   } else {
-    AppSeeds = Seeds = root.AppSeeds = root.Seeds = {}
-  };
-  
+    AppSeeds = Seeds = root.AppSeeds = root.Seeds = {};
+  }
+
   // Current version of the application, using [semantic versioning](http://semver.org/)
   AppSeeds.version = '0.6.0';
 
-  // Polyfills, mostly for IE, around missing Array methods: 
-  // [indexOf](https://gist.github.com/1034425), [filter](https://gist.github.com/1031656)
+  // Polyfills, mostly for IE, around missing Array methods like [indexOf](https://gist.github.com/1034425)
   if(!Array.isArray) {
     Array.isArray = function (vArg) { return Object.prototype.toString.call(vArg) === "[object Array]"; };
   }
@@ -38,12 +37,6 @@
     Array.prototype.indexOf = function(a,b,c){ 
       for(c=this.length,b=(c+~~b)%c;b<c&&(!(b in this)||this[b]!==a);b++);
       return b^c?b:-1;
-    };
-  }
-  if(!Array.prototype.filter) {
-    Array.prototype.filter = function(a,b,c,d,e) {
-      c=this;d=[];for(e in c)~~e+''==e&&e>=0&&a.call(b,c[e],+e,c)&&d.push(c[e]);
-      return d;
     };
   }
 
@@ -510,11 +503,16 @@
     //    * *eventString* one or more space-separated events;
     //    * *method* the function to unsubscribe
     unsub: function(eventStr, method) {
-      var events = eventStr.split(/\s+/), event, eventArray, i;
-      var f = function(item) { return item[0] !== method; }; /* filter function */
+      var events = eventStr.split(/\s+/), event, eventArray, newEventArray, i, j;
       for (i = 0; i < events.length; i++) {
-        event = events[i];
-        this._pubsubEvents[event] = this._pubsubEvents[event].filter(f);
+        eventArray = this._pubsubEvents[event = events[i]];
+        newEventArray = [];
+        for (j = 0; j < eventArray.length; j++) {
+          if (eventArray[j][0] !== method) {
+            newEventArray.push(eventArray[j]);
+          }
+        }
+        this._pubsubEvents[event] = newEventArray;
       }
       return this;
     },
@@ -618,7 +616,7 @@
     // (e.g. change the throttle limit), create it the old fashioned way.
     throttled: function(callback, limit) {
       var task = Seeds.Scheduler.create(callback).throttle(limit);
-      return function() { task.now(); }
+      return function() { task.now(); };
     },
     
     // Reset the timer of the schedule task, effectively postponing its execution.
