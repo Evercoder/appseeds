@@ -1,8 +1,24 @@
+//     AppSeeds (c) 2012 Dan Burzo
+//     AppSeeds can be freely distributed under the MIT license.
+// Elegant JavaScript components for modern web applications. Made by [@danburzo](https://twitter.com/#!/danburzo).
+//
+// Fork & contribute at [github.com/danburzo/appseeds](https://github.com/danburzo/appseeds). 
+//
+// Download [zip](https://github.com/danburzo/appseeds/zipball/master), [tar](https://github.com/danburzo/appseeds/tarball/master). 
+//
+// API / Annotated source code
+// ===========================
+//
+// What you're seeing below is the annotated source code slash makeshift API reference for AppSeeds.
+// It was automatically generated with [docco](http://jashkenas.github.com/docco/). Here goes:
+
+// Encapsulate the library to protect global scope.
+/*globals exports define require console*/
 (function(){
 
   var root = this;
 
-  // for CommonJS and the browser
+  // Export AppSeeds for CommonJS and the browser.
   var AppSeeds, Seeds;
   if (typeof exports !== 'undefined') {
     AppSeeds = Seeds = exports;
@@ -10,11 +26,11 @@
     AppSeeds = Seeds = root.AppSeeds = root.Seeds = {}
   };
   
-  // Semantic versioning
-  // @see http://semver.org/
+  // Current version of the application, using [semantic versioning](http://semver.org/)
   AppSeeds.version = '0.6.0';
 
-  // polyfills
+  // Polyfills, mostly for IE, around missing Array methods: 
+  // [indexOf](https://gist.github.com/1034425), [filter](https://gist.github.com/1031656)
   if(!Array.isArray) {
     Array.isArray = function (vArg) { return Object.prototype.toString.call(vArg) === "[object Array]"; };
   }
@@ -23,6 +39,7 @@
       for(c=this.length,b=(c+~~b)%c;b<c&&(!(b in this)||this[b]!==a);b++);
       return b^c?b:-1;
     };
+  }
   if(!Array.prototype.filter) {
     Array.prototype.filter = function(a,b,c,d,e) {
       c=this;d=[];for(e in c)~~e+''==e&&e>=0&&a.call(b,c[e],+e,c)&&d.push(c[e]);
@@ -30,49 +47,43 @@
     };
   }
 
+  // Seeds.StateManager
+  // ====
   AppSeeds.StateManager = {
     
-    // name of the root state
+    // Name of the root state
     root: 'root',
     
-    /*
-      Current state. Should not be manually overwritten!
-    */
+    // Current state. Should not be manually overwritten!
     current: null,
     
-    /*
-      Keeps the collection of states.
-      Key: state name
-      Value: Object:
-        - parent: parent state
-        - defaultSubstate: default substate
-        - context: collection of actions associated with that state
-    */
+    // Hash for the collection of states, with state name as key and an object
+    // as value to keep information about the state:
+    // 
+    // * *parent* parent state
+    // * *defaultSubstate* default substate
+    // * *context* the collection of actions associated with the state
     _states: {},
   
-    /* 
-      The context of the current state, contains the actions and other 'private' methods
-      defined with when() for that state.
-    */
+    // The context of the current state, contains the actions and other 'private' methods
+    // defined with when() for that state.
     context: null,
   
-    /**
-      Create a new instance of State Manager.
-      Usage: MyApp.stateManager = new AppSeeds.StateManager.create();
-      
-      @param options {String/Array/Object}
-        - when string/array, interpreted as 'states' option
-        - when hash, the following options are available:
-          - init {Function} what to execute when we call stateManager.init()
-          - states {String/Array} a string or list of strings that describe the state chart structure
-            (convenience method equivalent to .add(states))
-    */
+    // Creates a new instance of State Manager. Used as follows:
+    // 
+    // * **create(states)**
+    //    * *states* one or more space-separated state names, or an array of such strings;
+    //      convenience method for *StateManager.add(states)*
+    // * **create(options)**
+    //    * *options* a configuration object. Available options:
+    //      * *init* a function to execute when we call stateManager.init()
+    //      * *states* one or more space-separated state names, or an array of such strings;
+    //      convenience method for *StateManager.add(states)*
     create: function(options) {
       var C = function() {};
       C.prototype = this;
       var stateManager = new C();
-    
-      // initialize internals
+
       stateManager.root = 'root';
       stateManager._states = {};
       stateManager.state(stateManager.root, {
@@ -87,7 +98,6 @@
       if (typeof options === 'string' || Array.isArray(options)) {
         stateManager.add(options);
       } else {
-        // TODO migrate _onInit to delegate pattern
         stateManager._onInit = options.init;
         if (options.states) {
           stateManager.add(options.states);
@@ -96,13 +106,14 @@
       return stateManager;
     },
   
-    // initialize state manager; optional, at this point.
+    // Initialize the state manager (optional, at this point).
     init: function() {
       if (this._isFunc(this._onInit)) this._onInit.call(this);
       return this;
     },
   
-    // trace path from current state to root state
+    // Navigates from the current state up to the root state, 
+    // returning the list of state names that make up the branch.
     _toRoot: function(stateName) {
       var route = [];
       while(stateName) {
@@ -112,23 +123,23 @@
       return route;
     },
     
-    /**
-      Get/set information about a state.
-      @param stateName {String} name of the state
-      @param val (Optional {Object} new value for state
-      @return state {Object} the representation of the state.
-    */
+    
+    //  Get/set information about a state.
+    //
+    //  * *stateName* name of the state
+    //  * *val* (optional) object to set as new value for state
+    //
+    // Returns the state object.
     state: function(stateName, val) {
       if (val !== undefined) this._states[stateName] = val;
       return this._states[stateName];
     },
     
-    
-    /**
-      Returns the substates for a state.
-      @param stateName {String} state name
-      @return children {Array} array containing the names of the child states.
-    */
+    //  Gets the substates for a state.
+    //
+    //  * *stateName* name of the state
+    // 
+    // Returns an array containing the names of the child states.
     children: function(stateName) {
       var substates = [];
       for (var i in this._states) {
@@ -139,13 +150,12 @@
       return substates;
     },
   
-    // find the LCA (Lowest Common Ancestors) between two states
+    // Find the LCA (Lowest Common Ancestor) between two states.
     _lca: function(startState, endState) { 
       var exits = this._toRoot(startState), entries = this._toRoot(endState);
       for (var i = 0; i < exits.length; i++) {
         var idx = entries.indexOf(exits[i]);
         if (idx !== -1) {
-          // found the LCA
           exits = exits.slice(0, i);
           entries = entries.slice(0, idx).reverse();
           break;
@@ -154,12 +164,12 @@
       return { exits: exits, entries: entries };
     },
   
-    // check if argument is a function
+    // Check if the argument is a function.
     _isFunc: function(f) {
       return typeof f === 'function';
     },
   
-    // parse the state string into pairs of parent and child state.
+    // Parse a state string. See *StateManager.add()* for expected formats.
     _getStatePairs: function(str) {
       var tmp = str.split('->');
       var parentState, childStates;
@@ -193,13 +203,15 @@
       return pairs;
     },
   
-    /*
-      Transition to a new state in the manager.
-      Attempting to transition to an inexistent state does nothing (and logs a warning)
-      Attempting to transition to the same state as the current one will again do nothing.
     
-      @param stateName {String} the name of the state to which to transition.
-    */
+    // Transition to a new state in the manager.
+    // 
+    // Attempting to transition to an inexistent state does nothing and logs a warning.
+    // Likewise, attempting to transition to the same state as the current one will do nothing.
+    // 
+    // Parameters:
+    // 
+    //  * *stateName* the name of the state to which to transition
     go: function(stateName) {
       var state = this.state(stateName);
       if (state === undefined) {
@@ -210,59 +222,65 @@
         var states = this._lca(this.current, stateName);
         var i, action;
       
-        // exit to common ancestor
+        /* exit to common ancestor */
         for (i = 0; i < states.exits.length; i++) {
           this.context = this.state(states.exits[i]).context;
           if (this._isFunc(this.context.exit)) {
             if (this.context.exit.call(this) === false) {
-              // TODO halt
+              /* TODO halt */
             }
           }
         }
       
-        // enter to desired state
+        /* enter to desired state */
         for (i = 0; i < states.entries.length; i++) {
           this.context = this.state(states.entries[i]).context;
           if (this._isFunc(this.context.enter)) {
             if (this.context.enter.call(this) === false) {
-              // TODO halt
+              /* TODO halt */
             }
           }
         }
 
         this.current = stateName;
         
-        // execute 'stay'
-        this.context = this.state(this.current).context;
-        if (this._isFunc(this.context.stay)) {
-          this.context.stay.call(this);
+        var defaultSubstate = this.state(this.current).defaultSubstate;
+        if (defaultSubstate) {
+          /* go to default substate */
+          this.go(defaultSubstate);
+        } else {
+          /* execute 'stay' */
+          this.context = this.state(this.current).context;
+          if (this._isFunc(this.context.stay)) {
+            this.context.stay.call(this);
+          }
         }
 
-        // go to default substate
-        var defaultSubstate = this.state(this.current).defaultSubstate;
-        if (defaultSubstate) this.go(defaultSubstate);
       }
       return this;
     },
-    /*
-      Add a state to the manager.
-      All state names need to be unique.
-      Attempting to add a state with an existing name will show a warning and the state will not be added.
-      Attempting to add a state to an inexisting parent will show a warning and the state will not be added.
-    
-      Usage:
-    
-      A. add('parentState -> childState');
-      B. add('parentState -> childState1 childState2 ... childStateN');
-      C. add([
-        'parentState1 -> childState11 childState12 ... childState1N',
-        'parentState2 -> childState21 childState22 ... childState2N',
-        ...
-      ]);
-    
-      @param stateConnection {String/Array} a string describing a relationship between parent state and child state(s). 
-        Additionally can be an array of aforementioned strings.
-    */
+
+    // Add states to the manager. 
+    // 
+    // All state names need to be unique. Attempting to add a state with an existing name 
+    // will show a warning and the state will not be added. Likewise, attempting to add a state 
+    // to an inexisting parent will show a warning and the state will not be added.
+    //
+    // Signatures:
+    //
+    //  * **add(stateString)**
+    //  * **add(stateString1, ..., stateStringN)**
+    //  * **add(stateHash)** where the key is the name of the parent state and the value is a list
+    //    of space-separated state names.
+    //
+    // Expected format for the state strings:
+    //
+    //  * `parentState -> state1 state2 state3` or
+    //  * `state1 state2 state3` in which case the root state is the implied parent.
+    //
+    // To specify a default substate, use `!` like this:
+    // 
+    //     parentState -> state1 !state2 state3
     add: function(stateConnection) {
       var i, parentState, childState, isDefaultSubstate;
       if (arguments.length > 1) {
@@ -311,77 +329,63 @@
       return this;
     },
   
-    /*
-      Perform an action within the state manager.
-      The manager will go through the entire state chain, starting from the current state
-      and up to the root, for matching actions.
-    
-      You can break the chain by returning false in an action.
-    
-      Usage: act(actionName, [arg1, [arg2, ..., argN]]);
-    
-      @param actionName {String} the name of the action
-      @param (optional) arg1 ... argN - additional parameters to send to the action
-    */
+    // Perform an action within the state manager.
+    // 
+    // The manager will look through the entire state chain, 
+    // starting from the current state and up to the root, for matching actions.
+    //
+    // You can break this chain by returning false in one of the actions, 
+    // to prevent it from bubbling to the ancestor states.
+    //
+    // You can send any number of additional parameters to the action:
+    //
+    //  * **act(actionName, [arg1, [arg2, ..., argN]])**
+    //    * *actionName* the name of the action;
+    //    * *arg1, ... argN* (optional) additional parameters to pass to the action.
     act: function() {
-      // regenerate context to current state after bubbling up
+      // Don't forget to regenerate the context to current state 
+      // after the recursive call ends.
       this.context = this._act(this.current, arguments);
       return this;
     },
 
-    /* 
-      act recursively until action returns false; 
-    */
+    // Act recursively up the state tree until an action returns `false`. 
     _act: function(state, args) {
       this.context = this.state(state).context;
       var action = this.context[args[0]];
-      // break the chain on `return false;`
       if (this._isFunc(action) && action.apply(this, Array.prototype.slice.call(args, 1)) === false) return;
       var parentState = this.state(state).parent;
       if (parentState) this._act(parentState, args);   
       return this.context;    
     },
   
-    /*
-      Attach a set of actions for one or more states.
-      Multiple declarations of the same action for a state will overwrite the existing one.
-
-      USAGE:
-        A. when('stateName', { 
-          action1: function() {},
-          action2: function() {},
-          ...
-        });
-
-        B. when('stateName1 stateName2 ...', {
-          action1: function() {},
-          action2: function() {},
-          ...
-        });
-
-        C. when({
-          "stateName1": {
-            action11: function(){},
-            action12: function(){}
-          },
-          "stateName2 stateName3 ... ": {
-            action21: function() {},
-            action22: function() {}
-          }
-        });
-        
-        D. when('stateName1', function() {
-          // interpreted as `stay` function
-        });
     
-      @param stateString {String/Object} a string representing:
-        - a state name (usage A)
-        - a list of space-separated state names (usage B)      
-        - a hash where the key is a state name / space-separated state names, 
-          and the value is the actions object (usage C)
-      @param actions {Object/Function} list of actions to attach to the state(s)
-        - Note: if function, will be interpreted as `stay`
-    */
+    // Attach a set of actions for one or more states.
+    // 
+    // Subsequent declarations of the same action for a state will overwrite the previous ones.
+    // Signatures:
+    //
+    //  * **when(stateNames, actionsHash)**
+    //    * *stateNames* one or more space-separated stata names;
+    //    * *actionsHash* an object containing the actions to add to this state.
+    //      There are three reserved action names with special meaning:
+    //      * *enter* is executed when the manager enters the state;
+    //      * *exit* is executed when the manager leaves the state;
+    //      * *stay* is executed when the manager arrives in the state as its destination;
+    //  * **when(stateNames, stayFunction)** if the second parameter is a function, 
+    //    it will be interpreted as the `stay` action for the state;
+    //  * **when(stateHash)** you can have multiple state action declarations. 
+    //
+    // For example:
+    //
+    //      when({
+    //        'state1 state2': { /* some actions */ },
+    //        'state3': { /* some other actions */ } 
+    //      });
+    //
+    // Actions defined here will receive all the parameters sent with *StateManager.act()*. 
+    // `this` inside the action refers to the state manager. `this.context` refers to the actions hash
+    // defined for the state and can be used to reference other actions from the same state directly.
     when: function(stateString, actions) {
       var i;
       if (typeof stateString === 'object') {
@@ -395,11 +399,11 @@
           if (stateName) {
             var state = this.state(stateName);
             if (!state) {
-              console.warn('State ' + stateName + ' doesn\'t exist. Actions not added.');
+              console.warn('State %s doesn\'t exist. Actions not added.', stateName);
               return;
             }
             
-            // interpret single function as `stay` method
+            /* interpret single function as `stay` method */
             if (this._isFunc(actions)) {
               actions = { stay: actions };
             }
@@ -413,30 +417,18 @@
         }
       }
       return this;
-    },
-    
-    /** @deprecated */
-    whenIn: function() {
-      console.info('Deprecated: Use when() instead of whenIn()');
-      return this.when.apply(this, arguments);
-    },
-    
-    /** @deprecated */
-    goTo: function() {
-      console.info('Deprecated: Use go() instead of goTo()');
-      return this.go.apply(this, arguments);
     }
   };
 
-  /**
-    Simple PubSub implementation.
-    Events can be namespaced like this: 'namespace:event'
-  */
+  // Seeds.PubSub
+  // ============
+  // Simple PubSub implementation.
+  // Events can be namespaced like this: `namespace:event`
   AppSeeds.PubSub = {
   
-    /** 
-      Create a PubSub instance.
-    */
+    // Create a PubSub instance.
+    // 
+    //  * *options* a configuration object for the PubSub instance.
     create: function(options) {
       var C = function() {};
       C.prototype = this;
@@ -448,12 +440,11 @@
       return ps;
     },
 
-    /**
-      Publish an event.
-      
-      @param event {String} the event to trigger
-      @param (Optional) any number of additional params to pass to the methods subscribed to the event.
-    */
+    // Publish an event.
+    //    
+    //  * **pub(event, [arg1, [arg2 ...]])**
+    //    * *event* the event to trigger;
+    //    * *arg1 ... argN* (optional) any number of additional params to pass to the event subscribers.
     pub: function(eventString) {
       var eventComponents = this._parseEventNamespace(eventString);
       var eventArray, i, ilen, j, jlen, args, subscriber, ret, event;
@@ -472,7 +463,7 @@
       return this;
     },
     
-    // parse the namespaced event string to identify its components
+    // Parses the namespaced event string to identify its components.
     _parseEventNamespace: function(event) {
       var events = [], str = '', ch;
       for (var i = 0; i < event.length; i++) {
@@ -483,16 +474,19 @@
       return events;
     },
 
-    /**
-      Subscribe a function to an event or list of events.
-      
-      @param eventStr {String} the event to subscribe to or list of space-separated events.
-      @param method {Function} the method to run when the event is triggered
-      @param (Optional) thisArg {Object} 'this' context for the method
-      @param (Optional) flags {Object} 
-        - once: if true, subscriber will self-unsubscribe after first (successful) execution
-        - recoup: execute subscriber immediately if the event already happened at least once 
-    */
+    // Subscribe a function to one or more events.
+    //
+    //  * **sub(eventString, method, [thisArg, [flags]])**
+    //    * *eventString* one or more space-separated events;
+    //    * *method* the function to subscribe to the events;
+    //    * *thisArg* (optional) context for the method;
+    //    * *flags* (optional) boleans to configure the subscribers's behavior:
+    //      * *once* if true, the subscriber will self-unsubscribe after the first successful execution. You'll usually use *PubSub.once()* for this;
+    //      * *recoup* if true, the subscriber will execute immediately if the event it subscribes to already happened. You'll usually use *PubSub.recoup()* for this.
+    //
+    // *Careful!* When subscribing a method to multiple events, if the events don't get published
+    // with compatible parameters, you can end up with weird behavior. To avoid this, it's best to
+    // keep a common interface for all events in the list.
     sub: function(eventStr, method, thisArg, flags) {
       var events = eventStr.split(/\s+/), event, eventArray, i, len, oldArgs;
       flags = flags || { once: false, recoup: false };
@@ -510,15 +504,14 @@
       return this;
     },
 
-    /**
-      Unsubscribe a function from an event or list of events.
-      
-      @param eventStr {String} event to unsubscribe from or list of space-separated events.
-      @param method {Function} the method to unsubscribe
-    */
+    // Unsubscribe a function from one or more events.
+    //
+    //  * **unsub(eventString, method)**
+    //    * *eventString* one or more space-separated events;
+    //    * *method* the function to unsubscribe
     unsub: function(eventStr, method) {
       var events = eventStr.split(/\s+/), event, eventArray, i;
-      var f = function(item) { return item[0] !== method; }; // filter function
+      var f = function(item) { return item[0] !== method; }; /* filter function */
       for (i = 0; i < events.length; i++) {
         event = events[i];
         this._pubsubEvents[event] = this._pubsubEvents[event].filter(f);
@@ -526,62 +519,54 @@
       return this;
     },
     
-    /**
-      Subscribe to an event once. (Alias for sub() with isOnce = true)
-      The function will be unsubscribed upon successful exectution.
-      If you want to mark the function execution as unsuccessful 
-      (and thus keep it subscribed), use `return false;`
-    
-      @param eventStr {String} the event to subscribe to or list of space-separated events.
-      @param method {Function} the function to subscribe
-      @param thisArg (Optional) {Object} the context to pass to the function
-    */
+    // Subscribe to an event once. 
+    // 
+    // The function will be unsubscribed upon successful exectution.
+    // To mark the function execution as unsuccessful 
+    // (and thus keep it subscribed), make it return `false`.
+    //
+    //  * **once(eventString, method, thisArg)** identical to *PubSub.sub()*.
     once: function(eventStr, method, thisArg) {
       return this.sub(eventStr, method, thisArg, { once: true });
     },
 
-
-    /** 
-      Subscribe to an event, and execute immediately if that event was ever published before.
-      If executed immediately, the subscriber will get as parameters the last values sent with the event.
-
-      @param eventStr {String} the event to subscribe to or list of space-separated events.
-      @param method {Function} the function to subscribe
-      @param thisArg (Optional) {Object} the context to pass to the function
-    */
+    // Subscribe to an event, and execute immediately if that event was ever published before.
+    //
+    // If executed immediately, the subscriber will get as parameters the last values sent with the event.
+    //
+    //  * **recoup(eventString, method, thisArg)** identical to *PubSub.sub()*.
     recoup: function(eventStr, method, thisArg) {
       return this.sub(eventStr, method, thisArg, { recoup: true });
     },
     
-    /**
-      Schedule an event to publish, accepts same parameters as pub(). 
-      While pub() publishes an event immediately, schedule() returns a scheduled task.
-      @returns an AppSeeds.Scheduler instance.
-    */
+    // Schedule an event to publish, using *Seeds.Scheduler*. 
+    // 
+    // * **schedule(eventString, [arg1, ... [argN]])** identical to *PubSub.pub()*.
+    //
+    // While pub() publishes an event immediately, schedule() returns a scheduled task 
+    // which you need to trigger by using `now()`, `delay()` etc.
     schedule: function() {
-      return AppSeeds.Scheduler.create.apply(
+      if (!Seeds.Scheduler) return null;
+      return Seeds.Scheduler.create.apply(
         AppSeeds.Scheduler, 
         [this.pub, this].concat(Array.prototype.slice.call(arguments))
       );
     }
   };
 
-  /**
-    Scheduler allows you to work with timed callbacks through a simple, clear API.
-  */
+  // Seeds.Scheduler
+  // ===============
+  // Scheduler allows you to work with timed callbacks through a simple, clear API.
   AppSeeds.Scheduler = {
     
-    /**
-      Create a scheduled task.
-      
-      @param callback {Function} the task to schedule
-      @param (Optional) thisArg {Object} the context for the scheduled task
-      @param (Optional) arg1
-      ...
-      @param (Optional) argN
-
-      @return an AppSeeds.Scheduler instance.
-    */
+    // Create a scheduled task.
+    //  
+    //  *  **create(callback, thisArg, [arg1, [arg2 ... ])**
+    //    * *callback* the task to schedule
+    //    * *thisArg* (optional) context for the scheduled task
+    //    * *arg1 ... argN* (optional) additional parameters to send to the task
+    //
+    // Returns a *StateManager.Scheduler* instance.
     create: function(callback, thisArg) {
       var C = function() {};
       C.prototype = this;
@@ -599,9 +584,10 @@
       return schedule;
     },
     
-    /**
-      Execute scheduled task immediately, taking into account the throttling limit if applicable.
-    */
+    // Execute the scheduled task immediately. If the task is throttled (see *Scheduler.throttle()*),
+    // it will not be executed with higher frequency than the one imposed by the throttle limit. 
+    // 
+    // If you provide parameters to this call, they will override the ones declared on *create()*.
     now: function() {
       var now = (new Date()).getTime();
       if (!this.limit || (now - this._lastCalled > this.limit)) {
@@ -611,31 +597,31 @@
       return this;
     },
 
-    /**
-      Limit the execution frequency of a task.
-      Use limit(0) / limit(null) to get rid of the limit.
-      @param limit {Number} maximum execution frequency in milliseconds
-    */
+    // Limit the execution frequency of a task.
+    //
+    //  * **throttle(limit)**
+    //    * *limit* the maximum frequency of execution, in milliseconds.
+    //      send `0` or `null` to cancel the throttling.
     throttle: function(limit) {
       this.limit = limit;
       return this;
     },
 
-    /**
-      Static convenience method to get a throttled version of a function.
-      @param callback {Function} the function to throttle
-      @param limit {Number} maximum executiin frequency in milliseconds
-
-      @return throttledFunction {Function} throttled function, ready to use in other contexts.
-    */
+    // Static convenience method to get a throttled version of a function,
+    // without having to manually instantiate *Seeds.Scheduler*. 
+    //
+    //  * **throttled(callback, limit)**
+    //    * *callback* the original function
+    //    * *limit* the maximum frequency of executuin, in milliseconds
+    //
+    // Returns a throttled version of the function. If you want more control
+    // (e.g. change the throttle limit), create it the old fashioned way.
     throttled: function(callback, limit) {
       var task = Seeds.Scheduler.create(callback).throttle(limit);
       return function() { task.now(); }
     },
     
-    /**
-      Reset the timer of the schedule task, effectively postponing its execution.
-    */
+    // Reset the timer of the schedule task, effectively postponing its execution.
     reset: function() {
       this.stop();
       if (this.timeout) {
@@ -646,10 +632,12 @@
       return this;
     },
     
-    /**
-      Delay the publication with a number of milliseconds.
-      @param timeout {Number} the delay before execution, in milliseconds
-    */
+    // Delay task execution with a number of milliseconds, similar to `window.setTimeout`.
+    // 
+    //  * **delay(timeout)**
+    //    * *timeout* delay of execution, in milliseconds.
+    //
+    // Can be postponed by calling *reset()*.
     delay: function(timeout) {
       var that = this;
       this.timeout = timeout;
@@ -658,10 +646,12 @@
       return this;
     },
 
-    /**
-      Repeat the execution of the task each N milliseconds.
-      @param interval {Number} the frequency of execution, in milliseconds
-    */
+    // Repeat the execution of the task at a fixed interval, similar to `window.setInterval`.
+    // 
+    //  * **repeat(interval)**
+    //    * *interval* the execution interval
+    //
+    // Can be postponed by calling *reset()*.
     repeat: function(interval) {
       var that = this;
       this.interval = interval;
@@ -670,10 +660,7 @@
       return this;
     },
     
-    /**
-      Stop the scheduled task.
-      Use reset() to resume the schedule.
-    */
+    // Stop the scheduled task. It can be resumed by calling *reset()*.
     stop: function() {
       if (this.timeout) {
         window.clearTimeout(this._timerId);
@@ -683,41 +670,29 @@
       return this;
     },
 
-    // TODO
+    // TODO: permanently destroy a scheduled task.
     destroy: function() {}
   };
   
-  /**
-    Permit allows you to manage user permissions for various functions in your application.
-    Depends on Seeds.StateManager
-    
-    Usage:
-      Before: without Permit
-        var myApp = {
-          method1: function(arg1, arg2, ... argN) {},
-          method2: function(arg1, arg2, ... argN) {}
-        };
-        
-      After: with Permit
-      var permit = Seeds.Permit.create();
-      var myApp = {
-        method1: permit('admin user', function(arg1, arg2, ... argN) {}),
-        method2: permit('user', function(arg1, arg2, ... argN) {});
-      };
-      
-  */
+  // Seeds.Permit
+  // ============
+  // Permit allows you to manage user permissions for various functions in your application.
+  // TODO: Currently depends on *Seeds.StateManager*, but it should be an independent module.
   AppSeeds.Permit = {
 
     create: function(options) {
             
       var sm = AppSeeds.StateManager.create('APPSEEDS_UNAUTH_STATE');
       var permit = {
-        /**
-          Allow a function for a set of user roles.
-          @param roleStr {String} role or list of space-separated roles
-          @param originalFunction {Function} function to lock
-          @return lockedFunction {Function} the function protected based on role(s)
-        */
+        
+        // Allow a function for a set of user roles.
+        //
+        //  * **allow(roleString, originalFunction)**
+        //    * *roleString* one or more space-separated roles
+        //    * *originalFunction* the function to protect
+        //
+        // Returns a protected version of the function, that can be only called when 
+        // authenticated with a compatible role (see *Permit.auth()*).
         allow: function(roleStr, originalFunction) {
           var roles = roleStr.split(/\s+/), i;
           if (typeof originalFunction === 'function') {
@@ -736,37 +711,37 @@
             var f = function() { sm.act(functionId, this, arguments); };
             var obj = {};
 
-            // add action to root state
+            // Add this action to the root state.
             obj[functionId] = stateChartAction;
             sm.when(sm.root, obj);
 
-            // disallow for all states besides root state
+            // Disallow this action for all states except for root.
             obj[functionId] = disallow;
             for (i in sm._states) {
               if (sm._states.hasOwnProperty(i) && i !== sm.root) sm.when(i, obj);
             }
 
-            // allow for specified roles
+            // Allow action for the role(s) specified.
             obj[functionId] = allow;
             for (i = 0; i < roles.length; i++) {
-              // add role as state if not already existing
+              // If the role is inexistent, add it as a new state in the manager.
               if (!sm.state(roles[i])) sm.add(roles[i]);
               sm.when(roles[i], obj);
             }
-            // return the locked function
+            // Return the locked function.
             return f;
           }
           return null;
         },
         
-        /**
-          Authorize for a specific role.
-          @param role {String} the role to switch to.
-        */
+        // Authenticate as a specific role.
+        //
+        //  * **auth(role)**
+        //    * *role* a string describing the role
         auth: function(role) {
           if (!sm.state(role)) {
-            // if the role does not exist in the state manager,
-            // we need to create it and disallow all actions
+            // If the role does not exist in the state manager yet,
+            // we need to create it and disallow all actions.
             var disallow = function(thisArg, args) { 
               AppSeeds.delegate.apply(permit, ['didDisallow'].concat(Array.prototype.slice(args)));
               return false;
@@ -781,13 +756,18 @@
         }
       };
       
-      // apply options
+      // Extend the *Seeds.Permit* instance with the sent options.
+      // Particularly useful for attaching delegate functions (see *Seeds.delegate*).
       if (typeof options === 'object') Seeds.extend(permit, options);
       
       return permit;
     }
   };
 
+  // Utility methods
+  // ===============
+
+  //  *Seeds.delegate* provides delegate support for all modules.
   AppSeeds.delegate = function() {
     var delegate = this.delegate || this;
     if (typeof delegate[arguments[0]] === 'function') {
@@ -796,11 +776,13 @@
     return true;
   };
   
+  // *Seeds.guid* generates random GUIDs (Global Unique IDs) for stuff.
   AppSeeds.guid = function() {
     var S4 = function() { return (((1+Math.random())*0x10000)|0).toString(16).substring(1); };
     return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
   };
   
+  // *Seeds.extend* takes an arbitrary number of objects and merges them together into the first object.
   AppSeeds.extend = function() {
     var obj = arguments[0];
     for (var i = 1; i < arguments.length; i++) {
