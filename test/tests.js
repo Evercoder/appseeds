@@ -1,6 +1,6 @@
 /*globals test asyncTest expect ok strictEqual stop start AppSeeds Seeds console*/
 
-module('AppSeeds');
+module('Seeds.StateManager');
 
 test('StateManager implied root state', function() {
 	var sm = AppSeeds.StateManager.create('state1 state2');
@@ -307,6 +307,8 @@ test("StateManager.when(string, function) interpreted as stay() function", funct
   sm.go('state11');
 });
 
+module('Seeds.PubSub');
+
 test('PubSub basic use case', function() {
 	expect(2);
 	var ps = AppSeeds.PubSub.create();
@@ -428,6 +430,8 @@ test("PubSub.schedule() sync behavior", function() {
   ps.schedule('event', 1, 2, 3).now();
 });
 
+module('Seeds.Scheduler');
+
 test('Scheduler sync behavior', function() {
   expect(2);
   var schedule = AppSeeds.Scheduler.create(function() {
@@ -501,6 +505,8 @@ asyncTest('Scheduler.throttled()', function() {
     start();
   }, 3200);
 });
+
+module('Seeds.Permit');
 
 test('Permit basic setup', function() {
   expect(2);
