@@ -79,6 +79,7 @@
 
       stateManager.root = 'root';
       stateManager._states = {};
+      stateManager._actions = {};
       stateManager.state(stateManager.root, {
         parent: null,
         context: {},
@@ -340,6 +341,22 @@
       // after the recursive call ends.
       this.context = this._act(this.current, arguments);
       return this;
+    },
+
+    // Get a reference to a state manager action.
+    //
+    //  * **act(actionName)**
+    //    * *actionName* name of the action
+    //
+    // Returns a reference to the appropriate invocation of *act()*.
+    action: function(actionName) {
+      var that = this;
+      if (!this._actions[actionName]) {
+        this._actions[actionName] = function() {
+          return that.act.apply(that, [actionName].concat(Array.prototype.slice.call(arguments)));
+        };
+      }
+      return this._actions[actionName];
     },
 
     // Act recursively up the state tree until an action returns `false`. 

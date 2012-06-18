@@ -121,6 +121,27 @@ test("StateManager.act() bubbling with return values", function() {
   sm.act('action');
 });
 
+test("StateManager action()", function() {
+  expect(3);
+  var sm = Seeds.StateManager.create('A B C');
+  sm
+    .when('A', {
+      action1: function() {
+        strictEqual(arguments.length, 3, 'arguments ok');
+      },
+      action2: function() {}
+    })
+    .when('root', {
+      action1: function() { strictEqual(arguments.length, 3, 'arguments ok in root'); }
+    })
+    .go('A');
+
+  var f1 = sm.action('action1');
+  var f2 = sm.action('action1');
+  strictEqual(f1, f2, 'don\'t duplicate references to same action name');
+  f1(1,2,3);
+});
+
 test("StateManager 'private methods' for state", function() {
   expect(2);
   var sm = Seeds.StateManager.create();

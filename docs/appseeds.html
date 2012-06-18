@@ -81,6 +81,7 @@ convenience method for <em>StateManager.add(states)</em></li></ul></li></ul></li
 
       <span class="nx">stateManager</span><span class="p">.</span><span class="nx">root</span> <span class="o">=</span> <span class="s1">&#39;root&#39;</span><span class="p">;</span>
       <span class="nx">stateManager</span><span class="p">.</span><span class="nx">_states</span> <span class="o">=</span> <span class="p">{};</span>
+      <span class="nx">stateManager</span><span class="p">.</span><span class="nx">_actions</span> <span class="o">=</span> <span class="p">{};</span>
       <span class="nx">stateManager</span><span class="p">.</span><span class="nx">state</span><span class="p">(</span><span class="nx">stateManager</span><span class="p">.</span><span class="nx">root</span><span class="p">,</span> <span class="p">{</span>
         <span class="nx">parent</span><span class="o">:</span> <span class="kc">null</span><span class="p">,</span>
         <span class="nx">context</span><span class="o">:</span> <span class="p">{},</span>
@@ -357,7 +358,25 @@ after the recursive call ends.</p>             </td>             <td class="code
       <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
     <span class="p">},</span>
 
-</pre></div>             </td>           </tr>                               <tr id="section-23">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-23">&#182;</a>               </div>               <p>Act recursively up the state tree until an action returns <code>false</code>. </p>             </td>             <td class="code">               <div class="highlight"><pre>
+</pre></div>             </td>           </tr>                               <tr id="section-23">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-23">&#182;</a>               </div>               <p>Get a reference to a state manager action.</p>
+
+<ul>
+<li><strong>act(actionName)</strong>
+<ul><li><em>actionName</em> name of the action</li></ul></li>
+</ul>
+
+<p>Returns a reference to the appropriate invocation of <em>act()</em>.</p>             </td>             <td class="code">               <div class="highlight"><pre>
+    <span class="nx">action</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">actionName</span><span class="p">)</span> <span class="p">{</span>
+      <span class="kd">var</span> <span class="nx">that</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
+      <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="k">this</span><span class="p">.</span><span class="nx">_actions</span><span class="p">[</span><span class="nx">actionName</span><span class="p">])</span> <span class="p">{</span>
+        <span class="k">this</span><span class="p">.</span><span class="nx">_actions</span><span class="p">[</span><span class="nx">actionName</span><span class="p">]</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+          <span class="k">return</span> <span class="nx">that</span><span class="p">.</span><span class="nx">act</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="nx">that</span><span class="p">,</span> <span class="p">[</span><span class="nx">actionName</span><span class="p">].</span><span class="nx">concat</span><span class="p">(</span><span class="nb">Array</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">slice</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">arguments</span><span class="p">)));</span>
+        <span class="p">};</span>
+      <span class="p">}</span>
+      <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">_actions</span><span class="p">[</span><span class="nx">actionName</span><span class="p">];</span>
+    <span class="p">},</span>
+
+</pre></div>             </td>           </tr>                               <tr id="section-24">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-24">&#182;</a>               </div>               <p>Act recursively up the state tree until an action returns <code>false</code>. </p>             </td>             <td class="code">               <div class="highlight"><pre>
     <span class="nx">_act</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">state</span><span class="p">,</span> <span class="nx">args</span><span class="p">)</span> <span class="p">{</span>
       <span class="k">this</span><span class="p">.</span><span class="nx">context</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">state</span><span class="p">(</span><span class="nx">state</span><span class="p">).</span><span class="nx">context</span><span class="p">;</span>
       <span class="kd">var</span> <span class="nx">action</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">context</span><span class="p">[</span><span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]];</span>
@@ -368,7 +387,7 @@ after the recursive call ends.</p>             </td>             <td class="code
     <span class="p">},</span>
   
     
-</pre></div>             </td>           </tr>                               <tr id="section-24">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-24">&#182;</a>               </div>               <p>Attach a set of actions for one or more states.</p>
+</pre></div>             </td>           </tr>                               <tr id="section-25">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-25">&#182;</a>               </div>               <p>Attach a set of actions for one or more states.</p>
 
 <p>Subsequent declarations of the same action for a state will overwrite the previous ones.
 Signatures:</p>
@@ -431,13 +450,13 @@ defined for the state and can be used to reference other actions from the same s
     <span class="p">}</span>
   <span class="p">};</span>
 
-</pre></div>             </td>           </tr>                               <tr id="section-25">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-25">&#182;</a>               </div>               <h1>Seeds.PubSub</h1>
+</pre></div>             </td>           </tr>                               <tr id="section-26">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-26">&#182;</a>               </div>               <h1>Seeds.PubSub</h1>
 
 <p>Simple PubSub implementation.
 Events can be namespaced like this: <code>namespace:event</code></p>             </td>             <td class="code">               <div class="highlight"><pre>
   <span class="nx">AppSeeds</span><span class="p">.</span><span class="nx">PubSub</span> <span class="o">=</span> <span class="p">{</span>
   
-</pre></div>             </td>           </tr>                               <tr id="section-26">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-26">&#182;</a>               </div>               <p>Create a PubSub instance.</p>
+</pre></div>             </td>           </tr>                               <tr id="section-27">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-27">&#182;</a>               </div>               <p>Create a PubSub instance.</p>
 
 <ul>
 <li><em>options</em> a configuration object for the PubSub instance.</li>
@@ -453,7 +472,7 @@ Events can be namespaced like this: <code>namespace:event</code></p>            
       <span class="k">return</span> <span class="nx">ps</span><span class="p">;</span>
     <span class="p">},</span>
 
-</pre></div>             </td>           </tr>                               <tr id="section-27">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-27">&#182;</a>               </div>               <p>Publish an event.</p>
+</pre></div>             </td>           </tr>                               <tr id="section-28">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-28">&#182;</a>               </div>               <p>Publish an event.</p>
 
 <ul>
 <li><strong>pub(event, [arg1, [arg2 ...]])</strong>
@@ -478,7 +497,7 @@ Events can be namespaced like this: <code>namespace:event</code></p>            
       <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
     <span class="p">},</span>
     
-</pre></div>             </td>           </tr>                               <tr id="section-28">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-28">&#182;</a>               </div>               <p>Parses the namespaced event string to identify its components.</p>             </td>             <td class="code">               <div class="highlight"><pre>
+</pre></div>             </td>           </tr>                               <tr id="section-29">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-29">&#182;</a>               </div>               <p>Parses the namespaced event string to identify its components.</p>             </td>             <td class="code">               <div class="highlight"><pre>
     <span class="nx">_parseEventNamespace</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">event</span><span class="p">)</span> <span class="p">{</span>
       <span class="kd">var</span> <span class="nx">events</span> <span class="o">=</span> <span class="p">[],</span> <span class="nx">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="nx">ch</span><span class="p">;</span>
       <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">event</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
@@ -489,7 +508,7 @@ Events can be namespaced like this: <code>namespace:event</code></p>            
       <span class="k">return</span> <span class="nx">events</span><span class="p">;</span>
     <span class="p">},</span>
 
-</pre></div>             </td>           </tr>                               <tr id="section-29">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-29">&#182;</a>               </div>               <p>Subscribe a function to one or more events.</p>
+</pre></div>             </td>           </tr>                               <tr id="section-30">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-30">&#182;</a>               </div>               <p>Subscribe a function to one or more events.</p>
 
 <ul>
 <li><strong>sub(eventString, method, [thisArg, [flags]])</strong>
@@ -521,7 +540,7 @@ keep a common interface for all events in the list.</p>             </td>       
       <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
     <span class="p">},</span>
 
-</pre></div>             </td>           </tr>                               <tr id="section-30">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-30">&#182;</a>               </div>               <p>Unsubscribe a function from one or more events.</p>
+</pre></div>             </td>           </tr>                               <tr id="section-31">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-31">&#182;</a>               </div>               <p>Unsubscribe a function from one or more events.</p>
 
 <ul>
 <li><strong>unsub(eventString, method)</strong>
@@ -543,7 +562,7 @@ keep a common interface for all events in the list.</p>             </td>       
       <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
     <span class="p">},</span>
     
-</pre></div>             </td>           </tr>                               <tr id="section-31">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-31">&#182;</a>               </div>               <p>Subscribe to an event once. </p>
+</pre></div>             </td>           </tr>                               <tr id="section-32">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-32">&#182;</a>               </div>               <p>Subscribe to an event once. </p>
 
 <p>The function will be unsubscribed upon successful exectution.
 To mark the function execution as unsuccessful 
@@ -556,7 +575,7 @@ To mark the function execution as unsuccessful
       <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">sub</span><span class="p">(</span><span class="nx">eventStr</span><span class="p">,</span> <span class="nx">method</span><span class="p">,</span> <span class="nx">thisArg</span><span class="p">,</span> <span class="p">{</span> <span class="nx">once</span><span class="o">:</span> <span class="kc">true</span> <span class="p">});</span>
     <span class="p">},</span>
 
-</pre></div>             </td>           </tr>                               <tr id="section-32">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-32">&#182;</a>               </div>               <p>Subscribe to an event, and execute immediately if that event was ever published before.</p>
+</pre></div>             </td>           </tr>                               <tr id="section-33">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-33">&#182;</a>               </div>               <p>Subscribe to an event, and execute immediately if that event was ever published before.</p>
 
 <p>If executed immediately, the subscriber will get as parameters the last values sent with the event.</p>
 
@@ -567,7 +586,7 @@ To mark the function execution as unsuccessful
       <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">sub</span><span class="p">(</span><span class="nx">eventStr</span><span class="p">,</span> <span class="nx">method</span><span class="p">,</span> <span class="nx">thisArg</span><span class="p">,</span> <span class="p">{</span> <span class="nx">recoup</span><span class="o">:</span> <span class="kc">true</span> <span class="p">});</span>
     <span class="p">},</span>
     
-</pre></div>             </td>           </tr>                               <tr id="section-33">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-33">&#182;</a>               </div>               <p>Schedule an event to publish, using <em>Seeds.Scheduler</em>. </p>
+</pre></div>             </td>           </tr>                               <tr id="section-34">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-34">&#182;</a>               </div>               <p>Schedule an event to publish, using <em>Seeds.Scheduler</em>. </p>
 
 <ul>
 <li><strong>schedule(eventString, [arg1, ... [argN]])</strong> identical to <em>PubSub.pub()</em>.</li>
@@ -584,12 +603,12 @@ which you need to trigger by using <code>now()</code>, <code>delay()</code> etc.
     <span class="p">}</span>
   <span class="p">};</span>
 
-</pre></div>             </td>           </tr>                               <tr id="section-34">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-34">&#182;</a>               </div>               <h1>Seeds.Scheduler</h1>
+</pre></div>             </td>           </tr>                               <tr id="section-35">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-35">&#182;</a>               </div>               <h1>Seeds.Scheduler</h1>
 
 <p>Scheduler allows you to work with timed callbacks through a simple, clear API.</p>             </td>             <td class="code">               <div class="highlight"><pre>
   <span class="nx">AppSeeds</span><span class="p">.</span><span class="nx">Scheduler</span> <span class="o">=</span> <span class="p">{</span>
     
-</pre></div>             </td>           </tr>                               <tr id="section-35">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-35">&#182;</a>               </div>               <p>Create a scheduled task.</p>
+</pre></div>             </td>           </tr>                               <tr id="section-36">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-36">&#182;</a>               </div>               <p>Create a scheduled task.</p>
 
 <ul>
 <li><strong>create(callback, thisArg, [arg1, [arg2 ... ])</strong>
@@ -616,7 +635,7 @@ which you need to trigger by using <code>now()</code>, <code>delay()</code> etc.
       <span class="k">return</span> <span class="nx">schedule</span><span class="p">;</span>
     <span class="p">},</span>
     
-</pre></div>             </td>           </tr>                               <tr id="section-36">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-36">&#182;</a>               </div>               <p>Execute the scheduled task immediately. If the task is throttled (see <em>Scheduler.throttle()</em>),
+</pre></div>             </td>           </tr>                               <tr id="section-37">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-37">&#182;</a>               </div>               <p>Execute the scheduled task immediately. If the task is throttled (see <em>Scheduler.throttle()</em>),
 it will not be executed with higher frequency than the one imposed by the throttle limit. </p>
 
 <p>If you provide parameters to this call, they will override the ones declared on <em>create()</em>.</p>             </td>             <td class="code">               <div class="highlight"><pre>
@@ -629,7 +648,7 @@ it will not be executed with higher frequency than the one imposed by the thrott
       <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
     <span class="p">},</span>
 
-</pre></div>             </td>           </tr>                               <tr id="section-37">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-37">&#182;</a>               </div>               <p>Limit the execution frequency of a task.</p>
+</pre></div>             </td>           </tr>                               <tr id="section-38">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-38">&#182;</a>               </div>               <p>Limit the execution frequency of a task.</p>
 
 <ul>
 <li><strong>throttle(limit)</strong>
@@ -641,7 +660,7 @@ send <code>0</code> or <code>null</code> to cancel the throttling.</li></ul></li
       <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
     <span class="p">},</span>
 
-</pre></div>             </td>           </tr>                               <tr id="section-38">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-38">&#182;</a>               </div>               <p>Static convenience method to get a throttled version of a function,
+</pre></div>             </td>           </tr>                               <tr id="section-39">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-39">&#182;</a>               </div>               <p>Static convenience method to get a throttled version of a function,
 without having to manually instantiate <em>Seeds.Scheduler</em>. </p>
 
 <ul>
@@ -657,7 +676,7 @@ without having to manually instantiate <em>Seeds.Scheduler</em>. </p>
       <span class="k">return</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span> <span class="nx">task</span><span class="p">.</span><span class="nx">now</span><span class="p">();</span> <span class="p">};</span>
     <span class="p">},</span>
     
-</pre></div>             </td>           </tr>                               <tr id="section-39">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-39">&#182;</a>               </div>               <p>Reset the timer of the schedule task, effectively postponing its execution.</p>             </td>             <td class="code">               <div class="highlight"><pre>
+</pre></div>             </td>           </tr>                               <tr id="section-40">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-40">&#182;</a>               </div>               <p>Reset the timer of the schedule task, effectively postponing its execution.</p>             </td>             <td class="code">               <div class="highlight"><pre>
     <span class="nx">reset</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
       <span class="k">this</span><span class="p">.</span><span class="nx">stop</span><span class="p">();</span>
       <span class="k">if</span> <span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">timeout</span><span class="p">)</span> <span class="p">{</span>
@@ -668,7 +687,7 @@ without having to manually instantiate <em>Seeds.Scheduler</em>. </p>
       <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
     <span class="p">},</span>
     
-</pre></div>             </td>           </tr>                               <tr id="section-40">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-40">&#182;</a>               </div>               <p>Delay task execution with a number of milliseconds, similar to <code>window.setTimeout</code>.</p>
+</pre></div>             </td>           </tr>                               <tr id="section-41">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-41">&#182;</a>               </div>               <p>Delay task execution with a number of milliseconds, similar to <code>window.setTimeout</code>.</p>
 
 <ul>
 <li><strong>delay(timeout)</strong>
@@ -684,7 +703,7 @@ without having to manually instantiate <em>Seeds.Scheduler</em>. </p>
       <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
     <span class="p">},</span>
 
-</pre></div>             </td>           </tr>                               <tr id="section-41">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-41">&#182;</a>               </div>               <p>Repeat the execution of the task at a fixed interval, similar to <code>window.setInterval</code>.</p>
+</pre></div>             </td>           </tr>                               <tr id="section-42">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-42">&#182;</a>               </div>               <p>Repeat the execution of the task at a fixed interval, similar to <code>window.setInterval</code>.</p>
 
 <ul>
 <li><strong>repeat(interval)</strong>
@@ -700,7 +719,7 @@ without having to manually instantiate <em>Seeds.Scheduler</em>. </p>
       <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
     <span class="p">},</span>
     
-</pre></div>             </td>           </tr>                               <tr id="section-42">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-42">&#182;</a>               </div>               <p>Stop the scheduled task. It can be resumed by calling <em>reset()</em>.</p>             </td>             <td class="code">               <div class="highlight"><pre>
+</pre></div>             </td>           </tr>                               <tr id="section-43">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-43">&#182;</a>               </div>               <p>Stop the scheduled task. It can be resumed by calling <em>reset()</em>.</p>             </td>             <td class="code">               <div class="highlight"><pre>
     <span class="nx">stop</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
       <span class="k">if</span> <span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">timeout</span><span class="p">)</span> <span class="p">{</span>
         <span class="nb">window</span><span class="p">.</span><span class="nx">clearTimeout</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">_timerId</span><span class="p">);</span>
@@ -710,11 +729,11 @@ without having to manually instantiate <em>Seeds.Scheduler</em>. </p>
       <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
     <span class="p">},</span>
 
-</pre></div>             </td>           </tr>                               <tr id="section-43">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-43">&#182;</a>               </div>               <p>TODO: permanently destroy a scheduled task.</p>             </td>             <td class="code">               <div class="highlight"><pre>
+</pre></div>             </td>           </tr>                               <tr id="section-44">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-44">&#182;</a>               </div>               <p>TODO: permanently destroy a scheduled task.</p>             </td>             <td class="code">               <div class="highlight"><pre>
     <span class="nx">destroy</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{}</span>
   <span class="p">};</span>
   
-</pre></div>             </td>           </tr>                               <tr id="section-44">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-44">&#182;</a>               </div>               <h1>Seeds.Permit</h1>
+</pre></div>             </td>           </tr>                               <tr id="section-45">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-45">&#182;</a>               </div>               <h1>Seeds.Permit</h1>
 
 <p>Permit allows you to manage user permissions for various functions in your application.</p>             </td>             <td class="code">               <div class="highlight"><pre>
   <span class="nx">AppSeeds</span><span class="p">.</span><span class="nx">Permit</span> <span class="o">=</span> <span class="p">{</span>
@@ -726,7 +745,7 @@ without having to manually instantiate <em>Seeds.Scheduler</em>. </p>
 
       <span class="kd">var</span> <span class="nx">permit</span> <span class="o">=</span> <span class="p">{</span>
         
-</pre></div>             </td>           </tr>                               <tr id="section-45">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-45">&#182;</a>               </div>               <p>Allow a function for a set of user roles.</p>
+</pre></div>             </td>           </tr>                               <tr id="section-46">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-46">&#182;</a>               </div>               <p>Allow a function for a set of user roles.</p>
 
 <ul>
 <li><strong>allow(roleString, originalFunction)</strong>
@@ -764,7 +783,7 @@ authenticated with a compatible role (see <em>Permit.auth()</em>).</p>          
           <span class="k">return</span> <span class="kc">null</span><span class="p">;</span>
         <span class="p">},</span>
         
-</pre></div>             </td>           </tr>                               <tr id="section-46">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-46">&#182;</a>               </div>               <p>Authenticate as a specific role.</p>
+</pre></div>             </td>           </tr>                               <tr id="section-47">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-47">&#182;</a>               </div>               <p>Authenticate as a specific role.</p>
 
 <ul>
 <li><strong>auth(role)</strong>
@@ -777,7 +796,7 @@ authenticated with a compatible role (see <em>Permit.auth()</em>).</p>          
         <span class="p">}</span>
       <span class="p">};</span>
       
-</pre></div>             </td>           </tr>                               <tr id="section-47">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-47">&#182;</a>               </div>               <p>Extend the <em>Seeds.Permit</em> instance with the sent options.
+</pre></div>             </td>           </tr>                               <tr id="section-48">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-48">&#182;</a>               </div>               <p>Extend the <em>Seeds.Permit</em> instance with the sent options.
 Particularly useful for attaching delegate functions (see <em>Seeds.delegate</em>).</p>             </td>             <td class="code">               <div class="highlight"><pre>
       <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="nx">options</span> <span class="o">===</span> <span class="s1">&#39;object&#39;</span><span class="p">)</span> <span class="nx">Seeds</span><span class="p">.</span><span class="nx">extend</span><span class="p">(</span><span class="nx">permit</span><span class="p">,</span> <span class="nx">options</span><span class="p">);</span>
       
@@ -785,9 +804,9 @@ Particularly useful for attaching delegate functions (see <em>Seeds.delegate</em
     <span class="p">}</span>
   <span class="p">};</span>
 
-</pre></div>             </td>           </tr>                               <tr id="section-48">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-48">&#182;</a>               </div>               <h1>Utility methods</h1>             </td>             <td class="code">               <div class="highlight"><pre>
+</pre></div>             </td>           </tr>                               <tr id="section-49">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-49">&#182;</a>               </div>               <h1>Utility methods</h1>             </td>             <td class="code">               <div class="highlight"><pre>
 
-</pre></div>             </td>           </tr>                               <tr id="section-49">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-49">&#182;</a>               </div>               <p><em>Seeds.delegate</em> provides delegate support for all modules.</p>             </td>             <td class="code">               <div class="highlight"><pre>
+</pre></div>             </td>           </tr>                               <tr id="section-50">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-50">&#182;</a>               </div>               <p><em>Seeds.delegate</em> provides delegate support for all modules.</p>             </td>             <td class="code">               <div class="highlight"><pre>
   <span class="nx">AppSeeds</span><span class="p">.</span><span class="nx">delegate</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
     <span class="kd">var</span> <span class="nx">delegate</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">delegate</span> <span class="o">||</span> <span class="k">this</span><span class="p">;</span>
     <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="nx">delegate</span><span class="p">[</span><span class="nx">arguments</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">===</span> <span class="s1">&#39;function&#39;</span><span class="p">)</span> <span class="p">{</span>
@@ -796,13 +815,13 @@ Particularly useful for attaching delegate functions (see <em>Seeds.delegate</em
     <span class="k">return</span> <span class="kc">true</span><span class="p">;</span>
   <span class="p">};</span>
   
-</pre></div>             </td>           </tr>                               <tr id="section-50">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-50">&#182;</a>               </div>               <p><em>Seeds.guid</em> generates random GUIDs (Global Unique IDs) for stuff.</p>             </td>             <td class="code">               <div class="highlight"><pre>
+</pre></div>             </td>           </tr>                               <tr id="section-51">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-51">&#182;</a>               </div>               <p><em>Seeds.guid</em> generates random GUIDs (Global Unique IDs) for stuff.</p>             </td>             <td class="code">               <div class="highlight"><pre>
   <span class="nx">AppSeeds</span><span class="p">.</span><span class="nx">guid</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
     <span class="kd">var</span> <span class="nx">S4</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="p">(((</span><span class="mi">1</span><span class="o">+</span><span class="nb">Math</span><span class="p">.</span><span class="nx">random</span><span class="p">())</span><span class="o">*</span><span class="mh">0x10000</span><span class="p">)</span><span class="o">|</span><span class="mi">0</span><span class="p">).</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">).</span><span class="nx">substring</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span> <span class="p">};</span>
     <span class="k">return</span> <span class="p">(</span><span class="nx">S4</span><span class="p">()</span><span class="o">+</span><span class="nx">S4</span><span class="p">()</span><span class="o">+</span><span class="s2">&quot;-&quot;</span><span class="o">+</span><span class="nx">S4</span><span class="p">()</span><span class="o">+</span><span class="s2">&quot;-&quot;</span><span class="o">+</span><span class="nx">S4</span><span class="p">()</span><span class="o">+</span><span class="s2">&quot;-&quot;</span><span class="o">+</span><span class="nx">S4</span><span class="p">()</span><span class="o">+</span><span class="s2">&quot;-&quot;</span><span class="o">+</span><span class="nx">S4</span><span class="p">()</span><span class="o">+</span><span class="nx">S4</span><span class="p">()</span><span class="o">+</span><span class="nx">S4</span><span class="p">());</span>
   <span class="p">};</span>
   
-</pre></div>             </td>           </tr>                               <tr id="section-51">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-51">&#182;</a>               </div>               <p><em>Seeds.extend</em> takes an arbitrary number of objects and merges them together into the first object.</p>             </td>             <td class="code">               <div class="highlight"><pre>
+</pre></div>             </td>           </tr>                               <tr id="section-52">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-52">&#182;</a>               </div>               <p><em>Seeds.extend</em> takes an arbitrary number of objects and merges them together into the first object.</p>             </td>             <td class="code">               <div class="highlight"><pre>
   <span class="nx">AppSeeds</span><span class="p">.</span><span class="nx">extend</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
     <span class="kd">var</span> <span class="nx">obj</span> <span class="o">=</span> <span class="nx">arguments</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
     <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">arguments</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
