@@ -683,15 +683,16 @@
         window.clearInterval(this._timerId);
       }
       return this;
-    },
-
-    // TODO: permanently destroy a scheduled task.
-    destroy: function() {}
+    }
   };
   
   // Seeds.Permit
   // ============
   // Permit allows you to manage user permissions for various functions in your application.
+  // 
+  // TODO Seeds.Permit -> Seeds.Conditional; accepts for *auth()* an evaluator function, 
+  // *allow()* specifies as first parameter a value/expression to be sent to the evaluator.
+  // If the function returns true, then the function is allowed to be executed. 
   AppSeeds.Permit = {
 
     create: function(options) {
