@@ -275,6 +275,8 @@
     // To specify a default substate, use `!` like this:
     // 
     //     parentState -> state1 !state2 state3
+    // 
+    // TODO would be cool to add `=>` instead of `->` if the substates are meant to be parallel.
     add: function(stateConnection) {
       var i, parentState, childState, isDefaultSubstate;
       if (arguments.length > 1) {
