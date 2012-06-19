@@ -272,7 +272,7 @@
           if (this._isFunc(this.context.enter)) {
             if (this.context.enter.call(this) === Seeds.SM.ASYNC) {
               this._status = Seeds.SM.STATUS_ASYNC;
-              this._queue = { exits: [], entries: states.entries.slice(i+1), lca: states.lca };
+              this._queue = { exits: [], entries: states.entries.slice(i+1), lca: states.entries[i] };
               return this;
             }
           }
@@ -294,6 +294,7 @@
 
       resume: function() {
         if (this._status === Seeds.SM.STATUS_ASYNC) {
+          console.log("queue", this._queue);
           this._walk(this._queue);
         }
       },

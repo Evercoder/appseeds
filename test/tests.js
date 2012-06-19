@@ -330,7 +330,7 @@ test("StateManager.when(<string>,<string>,<function>)", function() {
 asyncTest('StateManager: ASYNC behavior', function() {
   expect(1);
   var sm = Seeds.SM.create('A B C');
-  sm.add('A -> A1 A2 A3', 'B -> B1 B2 B3', 'C -> C1 C2 C3');
+  sm.add('A -> !A1 A2 A3', 'B -> B1 B2 B3', 'C -> C1 C2 C3');
   sm.add('A1 -> !A11 A12 A13', 'B1 -> B11 B12 B13', 'C1 -> C11 C12 C13');
 
   sm.when({
