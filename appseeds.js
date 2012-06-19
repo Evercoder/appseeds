@@ -59,9 +59,13 @@
       C.prototype = this._instanceMethods;
       var stateManager = new C();
 
-      stateManager.root = 'root';
-      stateManager._states = {};
-      stateManager._actions = {};
+      Seeds.extend(stateManager, {
+        _status: Seeds.StateManager.STATUS_READY,
+        root: 'root',
+        _states: {},
+        _actions: {}
+      });
+      
       stateManager.state(stateManager.root, {
         parent: null,
         context: {},
@@ -81,6 +85,14 @@
       }
       return stateManager;
     },
+
+    // #### State Manager constants
+    // The state manager can accept a new transition
+    STATUS_READY: 0x01,
+    // The state manager is currently in a transition, and therefore is locked
+    STATUS_TRANSITIONING: 0x02,
+    // The state manager was paused as part of an asynchronous transition
+    STATUS_PAUSED: 0x03,
   
     // ### Seeds.StateManager API
     _instanceMethods: {
@@ -102,6 +114,9 @@
       // The context of the current state, contains the actions and other 'private' methods
       // defined with when() for that state.
       context: null,
+
+      // The current status of the state manager
+      _status: null,
 
       // Initialize the state manager (optional, at this point).
       init: function() {
@@ -215,10 +230,12 @@
           console.warn('State ' + stateName + ' not defined');
           return;
         }
-        if (this.current !== stateName) {
+        if (this.current !== stateName && this._status === Seeds.SM.STATUS_READY) {
           var states = this._lca(this.current, stateName);
           var i, action;
-        
+
+          this._status = Seeds.SM.STATUS_TRANSITIONING;
+
           /* exit to common ancestor */
           for (i = 0; i < states.exits.length; i++) {
             this.context = this.state(states.exits[i]).context;
@@ -240,6 +257,8 @@
           }
 
           this.current = stateName;
+
+          this._status = Seeds.SM.STATUS_READY;
           
           var defaultSubstate = this.state(this.current).defaultSubstate;
           if (defaultSubstate) {
@@ -252,7 +271,6 @@
               this.context.stay.call(this);
             }
           }
-
         }
         return this;
       },
