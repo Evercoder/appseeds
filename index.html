@@ -37,6 +37,7 @@
               Download <a href='https://github.com/danburzo/appseeds/zipball/master'>zip</a>, <a href='https://github.com/danburzo/appseeds/tarball/master'>tar</a>.
               (MIT License)
           </p>
+          <p>Read the <a href='docs/appseeds.html'>annotated source code</a> for the complete API reference.</p>
         </div>
         <div id='get-started' class='cf'>
           <h2 class='cf'>Get started</h2>
@@ -90,7 +91,7 @@ task.reset(); // &hellip;or too!
           
           <div class='get-started-item'>
             <h3>Permit</h3>
-            <p>Seamless permission management. <!--<a href='#'>More &rarr;</a>--></p>
+            <p>Conditionally allow function execution. <!--<a href='#'>More &rarr;</a>--></p>
 <pre><code data-language='javascript'>
 var permit = Seeds.Permit.create();
 var MyApp = {
@@ -99,13 +100,13 @@ var MyApp = {
   // ...after
   poke: permit.allow('owner', function(who) { /* do it */ })
 };
-permit.auth('guest'); // authenticate as guest
+permit.evaluator('guest'); // authenticate as guest
 MyApp.poke(); // won't do anything
 </code></pre>
           </div>
         </div>
         
-        <p>Works with Firefox, Chrome, Internet Explorer 7+, Safari and Opera.</p>
+        <p>Works with Firefox (Win/Mac), Chrome (Win/Mac), Internet Explorer 7+, Safari (Win/Mac) and Opera.</p>
       </div>
   </body>
 </html>
