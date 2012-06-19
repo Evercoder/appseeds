@@ -279,7 +279,7 @@
         }
 
         this._status = Seeds.SM.STATUS_READY;
-        
+
         var defaultSubstate = this.state(this.current).defaultSubstate;
         if (defaultSubstate) {
           /* go to default substate */
@@ -290,12 +290,13 @@
             this.context.stay.call(this);
           }
         }
-        },
+      },
 
       resume: function() {
         if (this._status === Seeds.SM.STATUS_ASYNC) {
-          console.log("queue", this._queue);
           this._walk(this._queue);
+        } else {
+          console.warn('State manager is not paused.');
         }
       },
 
@@ -384,9 +385,13 @@
       //    * *actionName* the name of the action;
       //    * *arg1, ... argN* (optional) additional parameters to pass to the action.
       act: function() {
-        // Don't forget to regenerate the context to current state 
-        // after the recursive call ends.
-        this.context = this._act(this.current, arguments);
+        if (this._status !== Seeds.SM.ASYNC) {
+          // Don't forget to regenerate the context to current state 
+          // after the recursive call ends.
+          this.context = this._act(this.current, arguments);
+        } else {
+          console.warn('State manager is paused, can\'t perform action %s', arguments[0]);
+        }
         return this;
       },
 
@@ -841,7 +846,6 @@
             this._functions[fId = AppSeeds.guid()] = { func: originalFunction, expr: expr };
           }
           var f = this._functions[fId], permit = this;
-          console.log(this);
           return function() {
             if (permit._isAllowed(f.expr)) {
               /* allow */
