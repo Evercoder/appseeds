@@ -327,6 +327,35 @@ test("StateManager.when(<string>,<string>,<function>)", function() {
   strictEqual(arr[2], 'B.stay');
 });
 
+asyncTest('StateManager: ASYNC behavior', function() {
+  expect(1);
+  var sm = Seeds.SM.create('A B C');
+  sm.add('A -> A1 A2 A3', 'B -> B1 B2 B3', 'C -> C1 C2 C3');
+  sm.add('A1 -> !A11 A12 A13', 'B1 -> B11 B12 B13', 'C1 -> C11 C12 C13');
+
+  sm.when({
+    'A': {
+      enter: function() {
+        window.setTimeout(function() {
+          sm.resume();
+        }, 50);
+        return false;
+      }
+    },
+    'A1': {},
+    'A11': {
+      stay: function() {
+        ok('here','got in A11');
+      }
+    }
+  });
+
+  sm.go('A');
+  window.setTimeout(function() {
+    start();
+  },200);
+});
+
 module('Seeds.PubSub');
 
 test('PubSub basic use case', function() {

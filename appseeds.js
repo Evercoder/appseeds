@@ -63,9 +63,10 @@
         _status: Seeds.StateManager.STATUS_READY,
         root: 'root',
         _states: {},
-        _actions: {}
+        _actions: {},
+        _queue: {}
       });
-      
+
       stateManager.state(stateManager.root, {
         parent: null,
         context: {},
@@ -87,12 +88,14 @@
     },
 
     // #### State Manager constants
-    // The state manager can accept a new transition
+    // The state manager can accept a new transition.
     STATUS_READY: 0x01,
-    // The state manager is currently in a transition, and therefore is locked
+    // The state manager is currently in a transition, and therefore is locked.
     STATUS_TRANSITIONING: 0x02,
-    // The state manager was paused as part of an asynchronous transition
-    STATUS_PAUSED: 0x03,
+    // The state manager was paused as part of an asynchronous transition.
+    STATUS_ASYNC: 0x03,
+    // The flag to return in *enter*/*exit* to enter asynchronous mode/
+    ASYNC: false,
   
     // ### Seeds.StateManager API
     _instanceMethods: {
@@ -115,8 +118,11 @@
       // defined with when() for that state.
       context: null,
 
-      // The current status of the state manager
+      // The current status of the state manager.
       _status: null,
+
+      // Where we left off when going into ASYNC mode. We need this in order to resume.
+      _queue: null,
 
       // Initialize the state manager (optional, at this point).
       init: function() {
@@ -164,16 +170,17 @@
     
       // Find the LCA (Lowest Common Ancestor) between two states.
       _lca: function(startState, endState) { 
-        var exits = this._toRoot(startState), entries = this._toRoot(endState);
+        var exits = this._toRoot(startState), entries = this._toRoot(endState), lca;
         for (var i = 0; i < exits.length; i++) {
           var idx = entries.indexOf(exits[i]);
           if (idx !== -1) {
+            lca = exits[i];
             exits = exits.slice(0, i);
             entries = entries.slice(0, idx).reverse();
             break;
           }
         }
-        return { exits: exits, entries: entries };
+        return { exits: exits, entries: entries, lca: lca };
       },
     
       // Check if the argument is a function.
@@ -232,47 +239,63 @@
         }
         if (this.current !== stateName && this._status === Seeds.SM.STATUS_READY) {
           var states = this._lca(this.current, stateName);
-          var i, action;
+          this._walk(states);
+        }
+        return this;
+      },
 
-          this._status = Seeds.SM.STATUS_TRANSITIONING;
+      _walk: function(states) {
+        var i, action;
+        this._status = Seeds.SM.STATUS_TRANSITIONING;
 
-          /* exit to common ancestor */
-          for (i = 0; i < states.exits.length; i++) {
-            this.context = this.state(states.exits[i]).context;
-            if (this._isFunc(this.context.exit)) {
-              if (this.context.exit.call(this) === false) {
-                /* TODO halt */
-              }
-            }
-          }
-        
-          /* enter to desired state */
-          for (i = 0; i < states.entries.length; i++) {
-            this.context = this.state(states.entries[i]).context;
-            if (this._isFunc(this.context.enter)) {
-              if (this.context.enter.call(this) === false) {
-                /* TODO halt */
-              }
-            }
-          }
-
-          this.current = stateName;
-
-          this._status = Seeds.SM.STATUS_READY;
-          
-          var defaultSubstate = this.state(this.current).defaultSubstate;
-          if (defaultSubstate) {
-            /* go to default substate */
-            this.go(defaultSubstate);
-          } else {
-            /* execute 'stay' */
-            this.context = this.state(this.current).context;
-            if (this._isFunc(this.context.stay)) {
-              this.context.stay.call(this);
+        /* exit to common ancestor */
+        for (i = 0; i < states.exits.length; i++) {
+          this.current = states.exits[i];
+          this.context = this.state(states.exits[i]).context;
+          if (this._isFunc(this.context.exit)) {
+            if (this.context.exit.call(this) === Seeds.SM.ASYNC) {
+              this._status = Seeds.SM.STATUS_ASYNC;
+              this._queue = { exits: states.exits.slice(i+1), entries: states.entries, lca: states.lca };
+              return this;
             }
           }
         }
-        return this;
+      
+        /* set common ancestor as current state */
+        this.current = states.lca;
+        this.context = this.state(this.current).context;
+
+        /* enter to desired state */
+        for (i = 0; i < states.entries.length; i++) {
+          this.current = states.entries[i];
+          this.context = this.state(states.entries[i]).context;
+          if (this._isFunc(this.context.enter)) {
+            if (this.context.enter.call(this) === Seeds.SM.ASYNC) {
+              this._status = Seeds.SM.STATUS_ASYNC;
+              this._queue = { exits: [], entries: states.entries.slice(i+1), lca: states.lca };
+              return this;
+            }
+          }
+        }
+
+        this._status = Seeds.SM.STATUS_READY;
+        
+        var defaultSubstate = this.state(this.current).defaultSubstate;
+        if (defaultSubstate) {
+          /* go to default substate */
+          this.go(defaultSubstate);
+        } else {
+          /* execute 'stay' */
+          if (this._isFunc(this.context.stay)) {
+            this.context.stay.call(this);
+          }
+        }
+        },
+
+      resume: function() {
+        if (this._status === Seeds.SM.STATUS_ASYNC) {
+          this._walk(this._queue);
+        }
       },
 
       // Add states to the manager. 
