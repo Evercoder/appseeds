@@ -27,7 +27,7 @@
   }
 
   // Current version of the application, using [semantic versioning](http://semver.org/)
-  AppSeeds.version = '0.6.0';
+  AppSeeds.version = '0.7.0';
 
   // Polyfills, mostly for IE, around missing Array methods like [indexOf](https://gist.github.com/1034425)
   if(!Array.isArray) {
@@ -583,7 +583,7 @@
   // Seeds.Scheduler
   // ===============
   // Scheduler allows you to work with timed callbacks through a simple, clear API.
-  AppSeeds.Scheduler = {
+  AppSeeds.Scheduler = AppSeeds.Sked = {
     
     // Create a scheduled task.
     //  
@@ -670,6 +670,24 @@
       this.interval = null;
       this._timerId = window.setTimeout(function() { that.now(); }, timeout);
       return this;
+    },
+
+    // Static convenience method to get a delayed version of a function,
+    // without having to manually instantiate *Seeds.Scheduler*. 
+    //
+    //  * **delayed(callback, timeout)**
+    //    * *callback* the original function
+    //    * *timeout* the delay in milliseconds
+    //
+    // Returns a delayed version of the function. Note that this is a plain function.
+    // If you want more control (e.g. *stop*, *reset*), create it the normal way:
+    // *Seeds.Scheduler.create(callback).delay(timeout)* which returns the scheduler instance.
+    // 
+    // This is the reason why there's no *repeated()* convenience method, because you'd have 
+    // no way of controlling it once it starts.
+    delayed: function(callback, timeout) {
+      var task = Seeds.Scheduler.create(callback).delay(timeout).stop();
+      return function() { task.reset(); };
     },
 
     // Repeat the execution of the task at a fixed interval, similar to `window.setInterval`.
