@@ -517,9 +517,13 @@ test('Permit basic setup', function() {
       strictEqual(arguments.length, 3, 'all arguments received');
     })
   };
-  permit.auth('admin');
+  permit.evaluator(function(expr) {
+    return expr === 'admin';
+  });
   myapp.doSomething('a','b', 'c');
-  permit.auth('user');
+  permit.evaluator(function(expr) {
+    return expr === 'user';
+  });
   myapp.doSomething('a','b', 'c');
 });
 
@@ -537,9 +541,13 @@ test("Permit: self-delegation", function() {
   var myapp = {
     doSomething: permit.allow('admin', function() {})
   };
-  permit.auth('admin');
+  permit.evaluator(function(expr) {
+    return expr === 'admin';
+  });
   myapp.doSomething();
-  permit.auth('user');
+  permit.evaluator(function(expr) {
+    return expr === 'user';
+  });
   myapp.doSomething();
 });
 
@@ -560,8 +568,34 @@ test("Permit: external delegate", function() {
   var myapp = {
     doSomething: permit.allow('admin', function() {})
   };
-  permit.auth('admin');
+  permit.evaluator(function(expr) {
+    return expr === 'admin';
+  });
   myapp.doSomething();
-  permit.auth('user');
+  permit.evaluator(function(expr) {
+    return expr === 'user';
+  });
   myapp.doSomething();
+});
+
+test("Permit: evaluator as string", function() {
+  expect(1);
+  var permit = Seeds.Permit.create();
+  permit.evaluator('admin');
+  var f = permit.allow('admin', function() {
+    strictEqual(arguments.length, 3, 'arguments ok');
+  });
+  f(1,2,3);
+  permit.evaluator('user');
+  f(1,2,3);
+});
+
+test("Permit: evaluator as regex", function() {
+  expect(2);
+  var permit = Seeds.Permit.create();
+  permit.evaluator(/^\s+/);
+  var f1 = permit.allow('   s', function() { ok('here'); });
+  var f2 = permit.allow(' s', function() { ok('here'); });
+  var f3 = permit.allow('s', function() { ok('here'); });
+  f1();f2();f3();
 });

@@ -690,30 +690,48 @@
   
   // Seeds.Permit
   // ============
-  // Permit allows you to manage user permissions for various functions in your application.
-  // 
-  // TODO Seeds.Permit -> Seeds.Conditional; accepts for *auth()* an evaluator function, 
-  // *allow()* specifies as first parameter a value/expression to be sent to the evaluator.
-  // If the function returns true, then the function is allowed to be executed. 
+  // Conditionally allow the execution of functions in your application.
   AppSeeds.Permit = {
 
-    create: function(options) {
+    // Create an instance of *Seeds.Permit*.
+    // 
+    //  * **create(options)**
+    //    * *options* a hash of options for the instance; available options:
+    //      * *didAllow* callback for when a function was allowed to execute;
+    //      * *didDisallow* callback for when a function was disallowed from executing;
+    //      * *delegate* as an alternative to defining the two callbacks above directly 
+    //        on the *Permit* object, you can define a delegate that implements those methods;
+    //  * **create(evaluator, [thisArg])** convenience method to create a new *Permit* instance 
+    //    and define the evaluator directly. Signature is identical to *Permit.evaluator*.
+    create: function(options, thisArg) {
       
-      var _functions = {};
-      var _auth = [];
+      // Protect the private stuff.
+      var _functions = {}, _evaluator = null, _thisArg = this;
+
+      // This method matches the expression to the evaluator, to decide whether to allow the execution of the function.
+      var _isAllowed = function(expr) {
+        if (typeof _evaluator === 'string') {
+          return expr === _evaluator;
+        } else if (typeof _evaluator === 'function') {
+          return _evaluator.call(_thisArg, expr);
+        } else if (_evaluator instanceof RegExp) {
+          return _evaluator.test(expr);
+        }
+        return false;
+      };
 
       var permit = {
         
         // Allow a function for a set of user roles.
         //
-        //  * **allow(roleString, originalFunction)**
-        //    * *roleString* one or more space-separated roles
+        //  * **allow(expr, originalFunction)**
+        //    * *expr* expression to evaluate
         //    * *originalFunction* the function to protect
         //
-        // Returns a protected version of the function, that can be only called when 
-        // authenticated with a compatible role (see *Permit.auth()*).
-        allow: function(roleStr, originalFunction) {
-          var roles = roleStr.split(/\s+/), i, fId;
+        // Returns a protected version of the function, 
+        // which can only be executed when the provided expression makes the evaluator return a truthy value (see *Permit.evaluator*).
+        allow: function(expr, originalFunction) {
+          var i, fId;
           if (typeof originalFunction === 'function') {
             for (i in _functions) {
               if (_functions.hasOwnProperty(i) && _functions[i].func === originalFunction) {
@@ -722,38 +740,45 @@
               }
             } 
             if (!fId) {
-              _functions[fId = AppSeeds.guid()] = { func: originalFunction, roles: roles };
+              _functions[fId = AppSeeds.guid()] = { func: originalFunction, expr: expr };
             }
             return function() {
               var f = _functions[fId];
-              for (var i = 0; i < _auth.length; i++) {
-                if (f.roles.indexOf(_auth[i]) > -1) {
-                  /* allow */
-                  Seeds.delegate.apply(permit, ['didAllow'].concat(Array.prototype.slice.call(arguments)));
-                  return f.func.apply(this, arguments);
-                }
+              if (_isAllowed(f.expr)) {
+                /* allow */
+                Seeds.delegate.apply(permit, ['didAllow'].concat(Array.prototype.slice.call(arguments)));
+                return f.func.apply(this, arguments);
+              } else {
+                /* disallow */
+                Seeds.delegate.apply(permit, ['didDisallow'].concat(Array.prototype.slice.call(arguments)));
               }
-              /* disallow */
-              Seeds.delegate.apply(permit, ['didDisallow'].concat(Array.prototype.slice.call(arguments)));
             };
           }
           return null;
         },
         
-        // Authenticate as a specific role.
+        // Set the evaluator for the permit.
         //
-        //  * **auth(role)**
-        //    * *role* a string describing the role; alternatively, an array of strings.
-        auth: function(roles) {
-          if (Array.isArray(roles)) roles = roles.join(' ');
-          _auth = roles.split(/\s+/);
+        //  * **evaluator(ev, [thisArg])**
+        //    * *ev* the evaluator; can be a function, string or regular expression;
+        //    * *thisArg* (optional) if the evaluator is a function, you can also send a context for it.
+        //
+        // When the evaluator is a function, it will receive a single parameter: the expression to evaluate.
+        // Return a truthy value if the expression passes and a falsy value otherwise.
+        evaluator: function(ev, thisArg) {
+          _evaluator = ev;
+          if (thisArg !== undefined) _thisArg = thisArg;
           return this;
         }
       };
       
       // Extend the *Seeds.Permit* instance with the sent options.
       // Particularly useful for attaching delegate functions (see *Seeds.delegate*).
-      if (typeof options === 'object') Seeds.extend(permit, options);
+      if (typeof options === 'object' && !(options instanceof RegExp)) {
+        Seeds.extend(permit, options);
+      } else {
+        permit.evaluator(options, thisArg);
+      }
       
       return permit;
     }
