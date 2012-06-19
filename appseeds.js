@@ -42,7 +42,7 @@
 
   // Seeds.StateManager
   // ====
-  AppSeeds.StateManager = {
+  AppSeeds.StateManager = AppSeeds.SM = {
     
     // Name of the root state
     root: 'root',
@@ -384,9 +384,10 @@
     //      * *enter* is executed when the manager enters the state;
     //      * *exit* is executed when the manager leaves the state;
     //      * *stay* is executed when the manager arrives in the state as its destination;
-    //  * **when(stateNames, stayFunction)** if the second parameter is a function, 
-    //    it will be interpreted as the `stay` action for the state;
-    //  * **when(stateHash)** you can have multiple state action declarations. 
+    //  * **when(stateNames, actionName, action)** a simpler way to add a single action at a time to the state;
+    //  * **when(stateNames, stayFunction)** even simpler: if the second parameter is a function, 
+    //    it will be interpreted as the *stay* action for the state;
+    //  * **when(stateHash)** you can even have multiple state action declarations in the same call. 
     //
     // For example:
     //
@@ -398,7 +399,7 @@
     // Actions defined here will receive all the parameters sent with *StateManager.act()*. 
     // `this` inside the action refers to the state manager. `this.context` refers to the actions hash
     // defined for the state and can be used to reference other actions from the same state directly.
-    when: function(stateString, actions) {
+    when: function(stateString, actions, action) {
       var i;
       if (typeof stateString === 'object') {
         for (i in stateString) {
@@ -418,6 +419,14 @@
             /* interpret single function as `stay` method */
             if (this._isFunc(actions)) {
               actions = { stay: actions };
+            } else if (typeof actions === 'string') {
+              /* 
+                interpret add('stateName', 'actionName', function(){ ... }) 
+                as add('stateName', { actionName: function() {...}}) 
+              */
+              var tmp = actions;
+              actions = {};
+              actions[tmp] = action;
             }
             
             if (!state.context) state.context = {};
@@ -436,7 +445,7 @@
   // ============
   // Simple PubSub implementation.
   // Events can be namespaced like this: `namespace:event`
-  AppSeeds.PubSub = {
+  AppSeeds.PubSub = AppSeeds.PS = {
   
     // Create a PubSub instance.
     // 
@@ -706,7 +715,8 @@
     create: function(options, thisArg) {
       
       // Protect the private stuff.
-      var _functions = {}, _evaluator = null, _thisArg = this;
+      // The default evaluator is the identity function.
+      var _functions = {}, _evaluator = function(expr) { return expr; }, _thisArg = this;
 
       // This method matches the expression to the evaluator, to decide whether to allow the execution of the function.
       var _isAllowed = function(expr) {

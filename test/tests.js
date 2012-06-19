@@ -293,7 +293,7 @@ test("StateManager: defaultSubstate for root", function() {
   strictEqual(sm.current, 'state2', 'transitioned to state2');
 });
 
-test("StateManager.when(string, function) interpreted as stay() function", function() {
+test("StateManager.when(<string>, <function>)", function() {
   expect(1);
   var sm = Seeds.StateManager.create('state1 state2 state3');
   sm.add('state1 -> state11 state12 state13');
@@ -305,6 +305,26 @@ test("StateManager.when(string, function) interpreted as stay() function", funct
   sm.go('state111');
   sm.go('state1');
   sm.go('state11');
+});
+
+test("StateManager.when(<string>,<string>,<function>)", function() {
+  var sm = Seeds.SM.create('A B C');
+  var arr = [];
+  sm
+    .when('A', 'enter', function() {
+      arr.push('A.enter');
+    })
+    .when('A', 'exit', function() {
+      arr.push('A.exit');
+    })
+    .when('B', 'stay', function() {
+      arr.push('B.stay');
+    })
+    .go('A')
+    .go('B')
+  strictEqual(arr[0], 'A.enter');
+  strictEqual(arr[1], 'A.exit');
+  strictEqual(arr[2], 'B.stay');
 });
 
 module('Seeds.PubSub');
