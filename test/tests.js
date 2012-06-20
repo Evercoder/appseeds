@@ -332,30 +332,29 @@ test("StateManager delegate", function() {
   var callbacks = [];
   var expected = ['enterA','enterA1','enterA12','stayA12','exitA12','exitA1','exitA','enterB','stayB','actdoB','actdoroot'];
   expect(expected.length);
-  var sm = Seeds.SM.create({
-    onEnter: function(state) {
+  var sm = Seeds.SM.create()
+    .sub('enter', function(state) {
       callbacks.push('enter' + state);
-    },
-    onExit: function(state) {
+    })
+    .sub('exit', function(state) {
       callbacks.push('exit' + state);
-    },
-    onStay: function(state) {
+    })
+    .sub('stay', function(state) {
       callbacks.push('stay' + state);
-    },
-    onAct: function(action, state) {
+    })
+    .sub('act', function(action, state) {
       callbacks.push('act' + action + state);
-    }
-  })
-  .add('A B C', 'A -> A1 A2', 'A1 -> A11 A12 A13');
-  sm.
-  when('root', {
-    do: function() {}
-  }).
-  when('B', {
-    do: function() {}
-  });
-  sm.go('A12').go('B');
-  sm.act('do');
+    })
+    .add('A B C', 'A -> A1 A2', 'A1 -> A11 A12 A13')
+    .when('root', {
+      do: function() {}
+    })
+    .when('B', {
+      do: function() {}
+    })
+    .go('A12')
+    .go('B')
+    .act('do');
 
   for (var i = 0; i < expected.length; i++) {
     strictEqual(callbacks[i], expected[i]);
@@ -525,40 +524,12 @@ test('Permit basic setup', function() {
 
 test("Permit: self-delegation", function() {
   expect(2);
-  var permit = Seeds.Permit.create({
-    onDisallow: function() {
-      ok('here!', 'did disallow');
-    },
-    onAllow: function() {
-      ok('here!', 'did allow');
-    }
-  });
-  
-  var myapp = {
-    doSomething: permit.allow('admin', function() {})
-  };
-  permit.evaluator(function(expr) {
-    return expr === 'admin';
-  });
-  myapp.doSomething();
-  permit.evaluator(function(expr) {
-    return expr === 'user';
-  });
-  myapp.doSomething();
-});
-
-test("Permit: external delegate", function() {
-  expect(2);
-  var d = {
-    onDisallow: function() {
-      ok('here!', 'did disallow');
-    },
-    onAllow: function() {
-      ok('here!', 'did allow');
-    }
-  };
-  var permit = Seeds.Permit.create({
-    delegate: d
+  var permit = Seeds.Permit.create();
+  permit.sub('allow', function() {
+    ok('here!', 'did allow');
+  })
+  .sub('disallow', function() {
+    ok('here!', 'did disallow');
   });
   
   var myapp = {

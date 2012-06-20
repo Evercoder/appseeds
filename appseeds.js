@@ -6,6 +6,8 @@
 //
 // Download [zip](https://github.com/danburzo/appseeds/zipball/master), [tar](https://github.com/danburzo/appseeds/tarball/master). 
 //
+// The guiding principles were: speed, terseness and progressive disclosure.
+//
 // API / Annotated source code
 // ===========================
 //
@@ -54,20 +56,13 @@
     // Creates a new instance of State Manager. Used as follows:
     // 
     // * **create(states)**
-    //    * *states* one or more space-separated state names, or an array of such strings;
+    //    * *states* (optional) one or more space-separated state names, or an array of such strings;
     //      convenience method for *StateManager.add(states)*
-    // * **create(options)**
-    //    * *options* a configuration object. Available options:
-    //      * *states* one or more space-separated state names, or an array of such strings;
-    //      * *onEnter* (delegatable) *callback(state)* for when *enter* is executed on a state;
-    //      * *onExit* (delegatable) *callback(state)* for when *exit* is executed on a state;
-    //      * *onStay* (delegatable) *callback(state)* for when *stay* is executed on a state;
-    //      * *onAct* (delegatable) *callback(action, state)* for when an action is triggered on a state;
-    //      * *delegate* delegate for the object.
     create: function(options) {
 
       var stateManager = Seeds.create(this._instanceMethods);
-      Seeds.mixin(stateManager, {
+      var pubsub = Seeds.facade(Seeds.PS.create(), stateManager, Seeds.PS.PUBLIC_API);
+      Seeds.mixin(stateManager, pubsub, {
         _status: Seeds.StateManager.STATUS_READY,
         root: 'root',
         _states: {},
@@ -86,12 +81,6 @@
       options = options || {};
       if (typeof options === 'string' || Array.isArray(options)) {
         stateManager.add(options);
-      } else {
-        Seeds.mixin(stateManager, options);
-      }
-      if (stateManager.states) {
-        stateManager.add(states);
-        delete stateManager.states;
       }
       return stateManager;
     },
@@ -255,7 +244,7 @@
               return this;
             }
           }
-          Seeds.delegate(this, 'onExit', this.current);
+          this.pub('exit', this.current);
         }
       
         /* set common ancestor as current state */
@@ -273,7 +262,7 @@
               return this;
             }
           }
-          Seeds.delegate(this, 'onEnter', this.current);
+          this.pub('enter', this.current);
         }
 
         this._status = Seeds.SM.STATUS_READY;
@@ -287,7 +276,7 @@
           if (typeof this.context.stay === 'function') {
             this.context.stay.call(this);
           }
-          Seeds.delegate(this, 'onStay', this.current);
+          this.pub('stay', this.current);
         }
       },
 
@@ -416,7 +405,7 @@
         var action = this.context[args[0]];
         if (typeof action === 'function') {
           var ret = action.apply(this, Array.prototype.slice.call(args, 1));
-          Seeds.delegate(this, 'onAct', args[0], state);
+          this.pub('act', args[0], state);
           if (ret === false) return;
         }
         var parentState = this.state(state).parent;
@@ -634,7 +623,10 @@
           [this.pub, this].concat(Array.prototype.slice.call(arguments))
         );
       }
-    }
+    },
+
+    // #### PubSub Constants
+    PUBLIC_API: ['pub', 'sub', 'unsub', 'once', 'recoup']
   };
 
   // Seeds.Scheduler
@@ -782,30 +774,21 @@
 
     // Create an instance of *Seeds.Permit*.
     // 
-    //  * **create(options)**
-    //    * *options* a hash of options for the instance; available options:
-    //      * *onAllow* callback for when a function was allowed to execute;
-    //      * *onDisallow* callback for when a function was disallowed from executing;
-    //      * *delegate* as an alternative to defining the two callbacks above directly 
-    //        on the *Permit* object, you can define a delegate that implements those methods;
-    //  * **create(evaluator, [thisArg])** convenience method to create a new *Permit* instance 
+    //  * **create([evaluator, [thisArg]])** convenience method to create a new *Permit* instance 
     //    and define the evaluator directly. Signature is identical to *Permit.evaluator*.
-    create: function(options, thisArg) {
+    create: function(evalFunc, thisArg) {
 
       var permit = Seeds.create(this._instanceMethods);
+      var pubsub = Seeds.facade(Seeds.PS.create(), permit, Seeds.PS.PUBLIC_API);
 
-      Seeds.mixin(permit, {
+      Seeds.mixin(permit, pubsub, {
         _functions: {}, 
         _evaluator: function(expr) { return expr; }, 
         _thisArg: this
       });
       
-      // Extend the *Seeds.Permit* instance with the sent options.
-      // Particularly useful for attaching delegate functions (see *Seeds.delegate*).
-      if (typeof options === 'object' && !(options instanceof RegExp)) {
-        Seeds.mixin(permit, options);
-      } else if (typeof options !== 'undefined') {
-        permit.evaluator(options, thisArg);
+      if (typeof evalFunc !== undefined) {
+        permit.evaluator(evalFunc, thisArg);
       }
       
       return permit;
@@ -850,11 +833,11 @@
             if (permit._isAllowed(f.expr)) {
               /* allow */
               var ret = f.func.apply(this, arguments);
-              Seeds.delegate(permit, 'onAllow', [f.locked].concat(Array.prototype.slice.call(arguments)));
+              permit.pub('allow', f.locked, Array.prototype.slice.call(arguments));
               return ret;
             } else {
               /* disallow */
-              Seeds.delegate(permit, 'onDisallow', [f.locked].concat(Array.prototype.slice.call(arguments)));
+              permit.pub('disallow', f.locked, Array.prototype.slice.call(arguments));
             }
           };
           return f.locked;
@@ -880,22 +863,6 @@
 
   // Utility methods
   // ===============
-
-  // *Seeds.delegate* implements the delegation pattern.
-  // 
-  //  * **delegate(obj, name, [arg1, ...[argN]])**
-  //    * *obj* the object on which to apply the delegation
-  //    * *name* the name of the function to delegate
-  //    * *arg1...argN* the arguments to pass to the function
-  //
-  // The action will be triggered on *obj.delegate* if present, or *obj* itself otherwise.
-  Seeds.delegate = function(obj, name) {
-    var delegate = obj.delegate || obj;
-    if (typeof delegate[name] === 'function') {
-      return delegate[name].apply(this, Array.prototype.slice.call(arguments, 2));
-    }
-    return true;
-  };
   
   // *Seeds.guid* generates random GUIDs (Global Unique IDs) for things.
   Seeds.guid = function() {
@@ -923,6 +890,50 @@
     var C = function() {};
     C.prototype = o;
     return new C();
+  };
+
+  // *Seeds.facade* returns a facade for a source object containing the desired subset of methods.
+  //
+  //  * **facade(sourceObj, destObj, api)
+  //    * *sourceObj* the source object containing the methods;
+  //    * *destObj* the destination object to which to bind the methods;
+  //    * *api* a mapping for the methods to include in the facade:
+  //      * if it's an array, the facade method names will have the same name 
+  //        as the ones in the source object;
+  //      * if it's a hash, the key will be the method name from the source object
+  //        and the value will be the name to use in the facade.
+  Seeds.facade = function(sourceObj, destObj, api) {
+    var facade = {}, i;
+    if (Array.isArray(api)) {
+      for (i = 0; i < api.length; i++) {
+        facade[api[i]] = Seeds.bind(sourceObj, destObj, api[i]);
+      }
+    } else if (typeof api === 'object') {
+      for (i in api) {
+        if (api.hasOwnProperty(i)) {
+          facade[api[i]] = Seeds.bind(sourceObj, destObj, i);
+        }
+      }
+    }
+    return facade;
+  };
+
+  // *Seeds.bind* implements functionality similar to *Function.bind*
+  // in that it attaches a method to a different context.
+  //
+  //  * **bind(sourceObj, destObj, methodName)
+  //    * *sourceObj* the original object where the method was defined;
+  //    * *destObj* destination object to which to bind the function;
+  //    * *methodName* the name of the property to bind.
+  // 
+  // In addition to the usual bind behavior, *Seeds.bind* detects method chaining
+  // and keeps it intact with the new context.
+  Seeds.bind = function(sourceObj, destObj, methodName) {
+    return function() {
+      var ret = sourceObj[methodName].apply(sourceObj, arguments);
+      /* detect method chaining */
+      return ret === sourceObj ? destObj : ret;
+    };
   };
   
 })(this);

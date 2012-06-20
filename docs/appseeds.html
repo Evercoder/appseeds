@@ -8,6 +8,8 @@ AppSeeds can be freely distributed under the MIT license.
 
 <p>Download <a href="https://github.com/danburzo/appseeds/zipball/master">zip</a>, <a href="https://github.com/danburzo/appseeds/tarball/master">tar</a>. </p>
 
+<p>The guiding principles were: speed, terseness and progressive disclosure.</p>
+
 <h1>API / Annotated source code</h1>
 
 <p>What you're seeing below is the annotated source code slash makeshift API reference for AppSeeds.
@@ -40,20 +42,13 @@ in a clear, maintainable way.</p>             </td>             <td class="code"
 
 <ul>
 <li><strong>create(states)</strong>
-<ul><li><em>states</em> one or more space-separated state names, or an array of such strings;
+<ul><li><em>states</em> (optional) one or more space-separated state names, or an array of such strings;
 convenience method for <em>StateManager.add(states)</em></li></ul></li>
-<li><strong>create(options)</strong>
-<ul><li><em>options</em> a configuration object. Available options:
-<ul><li><em>states</em> one or more space-separated state names, or an array of such strings;</li>
-<li><em>onEnter</em> (delegatable) <em>callback(state)</em> for when <em>enter</em> is executed on a state;</li>
-<li><em>onExit</em> (delegatable) <em>callback(state)</em> for when <em>exit</em> is executed on a state;</li>
-<li><em>onStay</em> (delegatable) <em>callback(state)</em> for when <em>stay</em> is executed on a state;</li>
-<li><em>onAct</em> (delegatable) <em>callback(action, state)</em> for when an action is triggered on a state;</li>
-<li><em>delegate</em> delegate for the object.</li></ul></li></ul></li>
 </ul>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nx">create</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">options</span><span class="p">)</span> <span class="p">{</span>
 
       <span class="kd">var</span> <span class="nx">stateManager</span> <span class="o">=</span> <span class="nx">Seeds</span><span class="p">.</span><span class="nx">create</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">_instanceMethods</span><span class="p">);</span>
-      <span class="nx">Seeds</span><span class="p">.</span><span class="nx">mixin</span><span class="p">(</span><span class="nx">stateManager</span><span class="p">,</span> <span class="p">{</span>
+      <span class="kd">var</span> <span class="nx">pubsub</span> <span class="o">=</span> <span class="nx">Seeds</span><span class="p">.</span><span class="nx">facade</span><span class="p">(</span><span class="nx">Seeds</span><span class="p">.</span><span class="nx">PS</span><span class="p">.</span><span class="nx">create</span><span class="p">(),</span> <span class="nx">stateManager</span><span class="p">,</span> <span class="nx">Seeds</span><span class="p">.</span><span class="nx">PS</span><span class="p">.</span><span class="nx">PUBLIC_API</span><span class="p">);</span>
+      <span class="nx">Seeds</span><span class="p">.</span><span class="nx">mixin</span><span class="p">(</span><span class="nx">stateManager</span><span class="p">,</span> <span class="nx">pubsub</span><span class="p">,</span> <span class="p">{</span>
         <span class="nx">_status</span><span class="o">:</span> <span class="nx">Seeds</span><span class="p">.</span><span class="nx">StateManager</span><span class="p">.</span><span class="nx">STATUS_READY</span><span class="p">,</span>
         <span class="nx">root</span><span class="o">:</span> <span class="s1">&#39;root&#39;</span><span class="p">,</span>
         <span class="nx">_states</span><span class="o">:</span> <span class="p">{},</span>
@@ -72,12 +67,6 @@ convenience method for <em>StateManager.add(states)</em></li></ul></li>
       <span class="nx">options</span> <span class="o">=</span> <span class="nx">options</span> <span class="o">||</span> <span class="p">{};</span>
       <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="nx">options</span> <span class="o">===</span> <span class="s1">&#39;string&#39;</span> <span class="o">||</span> <span class="nb">Array</span><span class="p">.</span><span class="nx">isArray</span><span class="p">(</span><span class="nx">options</span><span class="p">))</span> <span class="p">{</span>
         <span class="nx">stateManager</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="nx">options</span><span class="p">);</span>
-      <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-        <span class="nx">Seeds</span><span class="p">.</span><span class="nx">mixin</span><span class="p">(</span><span class="nx">stateManager</span><span class="p">,</span> <span class="nx">options</span><span class="p">);</span>
-      <span class="p">}</span>
-      <span class="k">if</span> <span class="p">(</span><span class="nx">stateManager</span><span class="p">.</span><span class="nx">states</span><span class="p">)</span> <span class="p">{</span>
-        <span class="nx">stateManager</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="nx">states</span><span class="p">);</span>
-        <span class="k">delete</span> <span class="nx">stateManager</span><span class="p">.</span><span class="nx">states</span><span class="p">;</span>
       <span class="p">}</span>
       <span class="k">return</span> <span class="nx">stateManager</span><span class="p">;</span>
     <span class="p">},</span></pre></div>             </td>           </tr>                               <tr id="section-8">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-8">&#182;</a>               </div>               <h4>State Manager constants</h4>
@@ -94,11 +83,8 @@ as value to keep information about the state:</p>
 <li><em>context</em> the collection of actions associated with the state</li>
 </ul>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">_states</span><span class="o">:</span> <span class="p">{},</span>
     </pre></div>             </td>           </tr>                               <tr id="section-16">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-16">&#182;</a>               </div>               <p>The context of the current state, contains the actions and other 'private' methods
-defined with when() for that state.</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">context</span><span class="o">:</span> <span class="kc">null</span><span class="p">,</span></pre></div>             </td>           </tr>                               <tr id="section-17">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-17">&#182;</a>               </div>               <p>The current status of the state manager.</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">_status</span><span class="o">:</span> <span class="kc">null</span><span class="p">,</span></pre></div>             </td>           </tr>                               <tr id="section-18">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-18">&#182;</a>               </div>               <p>Where we left off when going into ASYNC mode. We need this in order to resume. </p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">_queue</span><span class="o">:</span> <span class="kc">null</span><span class="p">,</span></pre></div>             </td>           </tr>                               <tr id="section-19">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-19">&#182;</a>               </div>               <p>Initialize the state manager (optional, at this point).</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">init</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
-        <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="k">this</span><span class="p">.</span><span class="nx">_onInit</span> <span class="o">===</span> <span class="s1">&#39;function&#39;</span><span class="p">)</span> <span class="k">this</span><span class="p">.</span><span class="nx">_onInit</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>
-        <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
-      <span class="p">},</span>
-      </pre></div>             </td>           </tr>                               <tr id="section-20">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-20">&#182;</a>               </div>               <p>Get/set information about a state.</p>
+defined with when() for that state.</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">context</span><span class="o">:</span> <span class="kc">null</span><span class="p">,</span></pre></div>             </td>           </tr>                               <tr id="section-17">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-17">&#182;</a>               </div>               <p>The current status of the state manager.</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">_status</span><span class="o">:</span> <span class="kc">null</span><span class="p">,</span></pre></div>             </td>           </tr>                               <tr id="section-18">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-18">&#182;</a>               </div>               <p>Where we left off when going into ASYNC mode. We need this in order to resume. </p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">_queue</span><span class="o">:</span> <span class="kc">null</span><span class="p">,</span>
+      </pre></div>             </td>           </tr>                               <tr id="section-19">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-19">&#182;</a>               </div>               <p>Get/set information about a state.</p>
 
 <ul>
 <li><em>stateName</em> name of the state</li>
@@ -109,7 +95,7 @@ defined with when() for that state.</p>             </td>             <td class=
         <span class="k">if</span> <span class="p">(</span><span class="nx">val</span> <span class="o">!==</span> <span class="kc">undefined</span><span class="p">)</span> <span class="k">this</span><span class="p">.</span><span class="nx">_states</span><span class="p">[</span><span class="nx">stateName</span><span class="p">]</span> <span class="o">=</span> <span class="nx">val</span><span class="p">;</span>
         <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">_states</span><span class="p">[</span><span class="nx">stateName</span><span class="p">];</span>
       <span class="p">},</span>
-      </pre></div>             </td>           </tr>                               <tr id="section-21">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-21">&#182;</a>               </div>               <p>Gets the substates for a state.</p>
+      </pre></div>             </td>           </tr>                               <tr id="section-20">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-20">&#182;</a>               </div>               <p>Gets the substates for a state.</p>
 
 <ul>
 <li><em>stateName</em> name of the state</li>
@@ -123,7 +109,7 @@ defined with when() for that state.</p>             </td>             <td class=
           <span class="p">}</span>
         <span class="p">}</span>
         <span class="k">return</span> <span class="nx">substates</span><span class="p">;</span>
-      <span class="p">},</span></pre></div>             </td>           </tr>                               <tr id="section-22">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-22">&#182;</a>               </div>               <p>Navigates from the current state up to the root state, 
+      <span class="p">},</span></pre></div>             </td>           </tr>                               <tr id="section-21">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-21">&#182;</a>               </div>               <p>Navigates from the current state up to the root state, 
 returning the list of state names that make up the branch.</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">_toRoot</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">stateName</span><span class="p">)</span> <span class="p">{</span>
         <span class="kd">var</span> <span class="nx">route</span> <span class="o">=</span> <span class="p">[];</span>
         <span class="k">while</span><span class="p">(</span><span class="nx">stateName</span><span class="p">)</span> <span class="p">{</span>
@@ -132,7 +118,7 @@ returning the list of state names that make up the branch.</p>             </td>
         <span class="p">}</span>
         <span class="k">return</span> <span class="nx">route</span><span class="p">;</span>
       <span class="p">},</span>
-    </pre></div>             </td>           </tr>                               <tr id="section-23">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-23">&#182;</a>               </div>               <p>Find the LCA (Lowest Common Ancestor) between two states.</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">_lca</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">startState</span><span class="p">,</span> <span class="nx">endState</span><span class="p">)</span> <span class="p">{</span> 
+    </pre></div>             </td>           </tr>                               <tr id="section-22">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-22">&#182;</a>               </div>               <p>Find the LCA (Lowest Common Ancestor) between two states.</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">_lca</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">startState</span><span class="p">,</span> <span class="nx">endState</span><span class="p">)</span> <span class="p">{</span> 
         <span class="kd">var</span> <span class="nx">exits</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">_toRoot</span><span class="p">(</span><span class="nx">startState</span><span class="p">),</span> <span class="nx">entries</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">_toRoot</span><span class="p">(</span><span class="nx">endState</span><span class="p">),</span> <span class="nx">lca</span><span class="p">;</span>
         <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">exits</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
           <span class="kd">var</span> <span class="nx">idx</span> <span class="o">=</span> <span class="nx">entries</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="nx">exits</span><span class="p">[</span><span class="nx">i</span><span class="p">]);</span>
@@ -145,7 +131,7 @@ returning the list of state names that make up the branch.</p>             </td>
         <span class="p">}</span>
         <span class="k">return</span> <span class="p">{</span> <span class="nx">exits</span><span class="o">:</span> <span class="nx">exits</span><span class="p">,</span> <span class="nx">entries</span><span class="o">:</span> <span class="nx">entries</span><span class="p">,</span> <span class="nx">lca</span><span class="o">:</span> <span class="nx">lca</span> <span class="p">};</span>
       <span class="p">},</span>
-    </pre></div>             </td>           </tr>                               <tr id="section-24">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-24">&#182;</a>               </div>               <p>Parse a state string. See <em>StateManager.add()</em> for expected formats.</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">_getStatePairs</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">str</span><span class="p">)</span> <span class="p">{</span>
+    </pre></div>             </td>           </tr>                               <tr id="section-23">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-23">&#182;</a>               </div>               <p>Parse a state string. See <em>StateManager.add()</em> for expected formats.</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">_getStatePairs</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">str</span><span class="p">)</span> <span class="p">{</span>
         <span class="kd">var</span> <span class="nx">tmp</span> <span class="o">=</span> <span class="nx">str</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">);</span>
         <span class="kd">var</span> <span class="nx">parentState</span><span class="p">,</span> <span class="nx">childStates</span><span class="p">;</span>
         <span class="k">switch</span><span class="p">(</span><span class="nx">tmp</span><span class="p">.</span><span class="nx">length</span><span class="p">)</span> <span class="p">{</span>
@@ -177,7 +163,7 @@ returning the list of state names that make up the branch.</p>             </td>
         <span class="p">}</span>
         <span class="k">return</span> <span class="nx">pairs</span><span class="p">;</span>
       <span class="p">},</span>
-    </pre></div>             </td>           </tr>                               <tr id="section-25">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-25">&#182;</a>               </div>               <p>Transition to a new state in the manager.</p>
+    </pre></div>             </td>           </tr>                               <tr id="section-24">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-24">&#182;</a>               </div>               <p>Transition to a new state in the manager.</p>
 
 <p>Attempting to transition to an inexistent state does nothing and logs a warning.
 Likewise, attempting to transition to the same state as the current one will do nothing.</p>
@@ -214,7 +200,7 @@ Likewise, attempting to transition to the same state as the current one will do 
               <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
             <span class="p">}</span>
           <span class="p">}</span>
-          <span class="nx">Seeds</span><span class="p">.</span><span class="nx">delegate</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="s1">&#39;onExit&#39;</span><span class="p">,</span> <span class="k">this</span><span class="p">.</span><span class="nx">current</span><span class="p">);</span>
+          <span class="k">this</span><span class="p">.</span><span class="nx">pub</span><span class="p">(</span><span class="s1">&#39;exit&#39;</span><span class="p">,</span> <span class="k">this</span><span class="p">.</span><span class="nx">current</span><span class="p">);</span>
         <span class="p">}</span>
       
         <span class="cm">/* set common ancestor as current state */</span>
@@ -232,7 +218,7 @@ Likewise, attempting to transition to the same state as the current one will do 
               <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
             <span class="p">}</span>
           <span class="p">}</span>
-          <span class="nx">Seeds</span><span class="p">.</span><span class="nx">delegate</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="s1">&#39;onEnter&#39;</span><span class="p">,</span> <span class="k">this</span><span class="p">.</span><span class="nx">current</span><span class="p">);</span>
+          <span class="k">this</span><span class="p">.</span><span class="nx">pub</span><span class="p">(</span><span class="s1">&#39;enter&#39;</span><span class="p">,</span> <span class="k">this</span><span class="p">.</span><span class="nx">current</span><span class="p">);</span>
         <span class="p">}</span>
 
         <span class="k">this</span><span class="p">.</span><span class="nx">_status</span> <span class="o">=</span> <span class="nx">Seeds</span><span class="p">.</span><span class="nx">SM</span><span class="p">.</span><span class="nx">STATUS_READY</span><span class="p">;</span>
@@ -246,7 +232,7 @@ Likewise, attempting to transition to the same state as the current one will do 
           <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="k">this</span><span class="p">.</span><span class="nx">context</span><span class="p">.</span><span class="nx">stay</span> <span class="o">===</span> <span class="s1">&#39;function&#39;</span><span class="p">)</span> <span class="p">{</span>
             <span class="k">this</span><span class="p">.</span><span class="nx">context</span><span class="p">.</span><span class="nx">stay</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>
           <span class="p">}</span>
-          <span class="nx">Seeds</span><span class="p">.</span><span class="nx">delegate</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="s1">&#39;onStay&#39;</span><span class="p">,</span> <span class="k">this</span><span class="p">.</span><span class="nx">current</span><span class="p">);</span>
+          <span class="k">this</span><span class="p">.</span><span class="nx">pub</span><span class="p">(</span><span class="s1">&#39;stay&#39;</span><span class="p">,</span> <span class="k">this</span><span class="p">.</span><span class="nx">current</span><span class="p">);</span>
         <span class="p">}</span>
       <span class="p">},</span>
 
@@ -256,7 +242,7 @@ Likewise, attempting to transition to the same state as the current one will do 
         <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
           <span class="nx">console</span><span class="p">.</span><span class="nx">warn</span><span class="p">(</span><span class="s1">&#39;State manager is not paused.&#39;</span><span class="p">);</span>
         <span class="p">}</span>
-      <span class="p">},</span></pre></div>             </td>           </tr>                               <tr id="section-26">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-26">&#182;</a>               </div>               <p>Add states to the manager. </p>
+      <span class="p">},</span></pre></div>             </td>           </tr>                               <tr id="section-25">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-25">&#182;</a>               </div>               <p>Add states to the manager. </p>
 
 <p>All state names need to be unique. Attempting to add a state with an existing name 
 will show a warning and the state will not be added. Likewise, attempting to add a state 
@@ -330,7 +316,7 @@ of space-separated state names.</li>
         <span class="p">}</span>
         <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
       <span class="p">},</span>
-    </pre></div>             </td>           </tr>                               <tr id="section-27">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-27">&#182;</a>               </div>               <p>Perform an action within the state manager.</p>
+    </pre></div>             </td>           </tr>                               <tr id="section-26">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-26">&#182;</a>               </div>               <p>Perform an action within the state manager.</p>
 
 <p>The manager will look through the entire state chain, 
 starting from the current state and up to the root, for matching actions.</p>
@@ -345,13 +331,13 @@ to prevent it from bubbling to the ancestor states.</p>
 <ul><li><em>actionName</em> the name of the action;</li>
 <li><em>arg1, ... argN</em> (optional) additional parameters to pass to the action.</li></ul></li>
 </ul>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">act</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
-        <span class="k">if</span> <span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">_status</span> <span class="o">!==</span> <span class="nx">Seeds</span><span class="p">.</span><span class="nx">SM</span><span class="p">.</span><span class="nx">ASYNC</span><span class="p">)</span> <span class="p">{</span></pre></div>             </td>           </tr>                               <tr id="section-28">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-28">&#182;</a>               </div>               <p>Don't forget to regenerate the context to current state 
+        <span class="k">if</span> <span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">_status</span> <span class="o">!==</span> <span class="nx">Seeds</span><span class="p">.</span><span class="nx">SM</span><span class="p">.</span><span class="nx">ASYNC</span><span class="p">)</span> <span class="p">{</span></pre></div>             </td>           </tr>                               <tr id="section-27">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-27">&#182;</a>               </div>               <p>Don't forget to regenerate the context to current state 
 after the recursive call ends.</p>             </td>             <td class="code">               <div class="highlight"><pre>          <span class="k">this</span><span class="p">.</span><span class="nx">context</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">_act</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">current</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
         <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
           <span class="nx">console</span><span class="p">.</span><span class="nx">warn</span><span class="p">(</span><span class="s1">&#39;State manager is paused, can\&#39;t perform action %s&#39;</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
         <span class="p">}</span>
         <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
-      <span class="p">},</span></pre></div>             </td>           </tr>                               <tr id="section-29">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-29">&#182;</a>               </div>               <p>Get a reference to a state manager action.</p>
+      <span class="p">},</span></pre></div>             </td>           </tr>                               <tr id="section-28">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-28">&#182;</a>               </div>               <p>Get a reference to a state manager action.</p>
 
 <ul>
 <li><strong>act(actionName)</strong>
@@ -366,12 +352,12 @@ after the recursive call ends.</p>             </td>             <td class="code
           <span class="p">};</span>
         <span class="p">}</span>
         <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">_actions</span><span class="p">[</span><span class="nx">actionName</span><span class="p">];</span>
-      <span class="p">},</span></pre></div>             </td>           </tr>                               <tr id="section-30">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-30">&#182;</a>               </div>               <p>Act recursively up the state tree until an action returns <code>false</code>. </p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">_act</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">state</span><span class="p">,</span> <span class="nx">args</span><span class="p">)</span> <span class="p">{</span>
+      <span class="p">},</span></pre></div>             </td>           </tr>                               <tr id="section-29">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-29">&#182;</a>               </div>               <p>Act recursively up the state tree until an action returns <code>false</code>. </p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">_act</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">state</span><span class="p">,</span> <span class="nx">args</span><span class="p">)</span> <span class="p">{</span>
         <span class="k">this</span><span class="p">.</span><span class="nx">context</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">state</span><span class="p">(</span><span class="nx">state</span><span class="p">).</span><span class="nx">context</span><span class="p">;</span>
         <span class="kd">var</span> <span class="nx">action</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">context</span><span class="p">[</span><span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]];</span>
         <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="nx">action</span> <span class="o">===</span> <span class="s1">&#39;function&#39;</span><span class="p">)</span> <span class="p">{</span>
           <span class="kd">var</span> <span class="nx">ret</span> <span class="o">=</span> <span class="nx">action</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nb">Array</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">slice</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">args</span><span class="p">,</span> <span class="mi">1</span><span class="p">));</span>
-          <span class="nx">Seeds</span><span class="p">.</span><span class="nx">delegate</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="s1">&#39;onAct&#39;</span><span class="p">,</span> <span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nx">state</span><span class="p">);</span>
+          <span class="k">this</span><span class="p">.</span><span class="nx">pub</span><span class="p">(</span><span class="s1">&#39;act&#39;</span><span class="p">,</span> <span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nx">state</span><span class="p">);</span>
           <span class="k">if</span> <span class="p">(</span><span class="nx">ret</span> <span class="o">===</span> <span class="kc">false</span><span class="p">)</span> <span class="k">return</span><span class="p">;</span>
         <span class="p">}</span>
         <span class="kd">var</span> <span class="nx">parentState</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">state</span><span class="p">(</span><span class="nx">state</span><span class="p">).</span><span class="nx">parent</span><span class="p">;</span>
@@ -379,7 +365,7 @@ after the recursive call ends.</p>             </td>             <td class="code
         <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">context</span><span class="p">;</span>    
       <span class="p">},</span>
     
-      </pre></div>             </td>           </tr>                               <tr id="section-31">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-31">&#182;</a>               </div>               <p>Attach a set of actions for one or more states.</p>
+      </pre></div>             </td>           </tr>                               <tr id="section-30">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-30">&#182;</a>               </div>               <p>Attach a set of actions for one or more states.</p>
 
 <p>Subsequent declarations of the same action for a state will overwrite the previous ones.
 Signatures:</p>
@@ -449,13 +435,13 @@ defined for the state and can be used to reference other actions from the same s
         <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
       <span class="p">}</span>
     <span class="p">}</span>
-  <span class="p">};</span></pre></div>             </td>           </tr>                               <tr id="section-32">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-32">&#182;</a>               </div>               <h1>Seeds.PubSub</h1>
+  <span class="p">};</span></pre></div>             </td>           </tr>                               <tr id="section-31">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-31">&#182;</a>               </div>               <h1>Seeds.PubSub</h1>
 
 <p>Alias: <em>Seeds.PS</em></p>
 
 <p>Simple PubSub implementation.
 Events can be namespaced like this: <code>namespace:event</code></p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nx">Seeds</span><span class="p">.</span><span class="nx">PubSub</span> <span class="o">=</span> <span class="nx">Seeds</span><span class="p">.</span><span class="nx">PS</span> <span class="o">=</span> <span class="p">{</span>
-  </pre></div>             </td>           </tr>                               <tr id="section-33">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-33">&#182;</a>               </div>               <p>Create a PubSub instance.</p>
+  </pre></div>             </td>           </tr>                               <tr id="section-32">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-32">&#182;</a>               </div>               <p>Create a PubSub instance.</p>
 
 <ul>
 <li><em>options</em> a configuration object for the PubSub instance.</li>
@@ -466,7 +452,7 @@ Events can be namespaced like this: <code>namespace:event</code></p>            
         <span class="nx">_pubsubHappened</span><span class="o">:</span> <span class="p">{}</span>
       <span class="p">});</span>
       <span class="k">return</span> <span class="nx">ps</span><span class="p">;</span>
-    <span class="p">},</span></pre></div>             </td>           </tr>                               <tr id="section-34">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-34">&#182;</a>               </div>               <h3>Seeds.PubSub API</h3>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nx">_instanceMethods</span><span class="o">:</span> <span class="p">{</span></pre></div>             </td>           </tr>                               <tr id="section-35">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-35">&#182;</a>               </div>               <p>Publish an event.</p>
+    <span class="p">},</span></pre></div>             </td>           </tr>                               <tr id="section-33">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-33">&#182;</a>               </div>               <h3>Seeds.PubSub API</h3>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nx">_instanceMethods</span><span class="o">:</span> <span class="p">{</span></pre></div>             </td>           </tr>                               <tr id="section-34">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-34">&#182;</a>               </div>               <p>Publish an event.</p>
 
 <ul>
 <li><strong>pub(event, [arg1, [arg2 ...]])</strong>
@@ -489,7 +475,7 @@ Events can be namespaced like this: <code>namespace:event</code></p>            
         <span class="p">}</span>
         <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
       <span class="p">},</span>
-      </pre></div>             </td>           </tr>                               <tr id="section-36">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-36">&#182;</a>               </div>               <p>Parses the namespaced event string to identify its components.</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">_parseEventNamespace</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">event</span><span class="p">)</span> <span class="p">{</span>
+      </pre></div>             </td>           </tr>                               <tr id="section-35">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-35">&#182;</a>               </div>               <p>Parses the namespaced event string to identify its components.</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">_parseEventNamespace</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">event</span><span class="p">)</span> <span class="p">{</span>
         <span class="kd">var</span> <span class="nx">events</span> <span class="o">=</span> <span class="p">[],</span> <span class="nx">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="nx">ch</span><span class="p">;</span>
         <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">event</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
           <span class="k">if</span> <span class="p">((</span><span class="nx">ch</span> <span class="o">=</span> <span class="nx">event</span><span class="p">.</span><span class="nx">charAt</span><span class="p">(</span><span class="nx">i</span><span class="p">))</span> <span class="o">===</span> <span class="s1">&#39;:&#39;</span><span class="p">)</span> <span class="nx">events</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">str</span><span class="p">);</span>
@@ -497,7 +483,7 @@ Events can be namespaced like this: <code>namespace:event</code></p>            
         <span class="p">}</span>
         <span class="nx">events</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">str</span><span class="p">);</span>
         <span class="k">return</span> <span class="nx">events</span><span class="p">;</span>
-      <span class="p">},</span></pre></div>             </td>           </tr>                               <tr id="section-37">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-37">&#182;</a>               </div>               <p>Subscribe a function to one or more events.</p>
+      <span class="p">},</span></pre></div>             </td>           </tr>                               <tr id="section-36">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-36">&#182;</a>               </div>               <p>Subscribe a function to one or more events.</p>
 
 <ul>
 <li><strong>sub(eventString, method, [thisArg, [flags]])</strong>
@@ -526,7 +512,7 @@ keep a common interface for all events in the list.</p>             </td>       
           <span class="p">}</span>
         <span class="p">}</span>
         <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
-      <span class="p">},</span></pre></div>             </td>           </tr>                               <tr id="section-38">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-38">&#182;</a>               </div>               <p>Unsubscribe a function from one or more events.</p>
+      <span class="p">},</span></pre></div>             </td>           </tr>                               <tr id="section-37">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-37">&#182;</a>               </div>               <p>Unsubscribe a function from one or more events.</p>
 
 <ul>
 <li><strong>unsub(eventString, method)</strong>
@@ -546,7 +532,7 @@ keep a common interface for all events in the list.</p>             </td>       
         <span class="p">}</span>
         <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
       <span class="p">},</span>
-      </pre></div>             </td>           </tr>                               <tr id="section-39">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-39">&#182;</a>               </div>               <p>Subscribe to an event once. </p>
+      </pre></div>             </td>           </tr>                               <tr id="section-38">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-38">&#182;</a>               </div>               <p>Subscribe to an event once. </p>
 
 <p>The function will be unsubscribed upon successful exectution.
 To mark the function execution as unsuccessful 
@@ -556,7 +542,7 @@ To mark the function execution as unsuccessful
 <li><strong>once(eventString, method, thisArg)</strong> identical to <em>PubSub.sub()</em>.</li>
 </ul>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">once</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">eventStr</span><span class="p">,</span> <span class="nx">method</span><span class="p">,</span> <span class="nx">thisArg</span><span class="p">)</span> <span class="p">{</span>
         <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">sub</span><span class="p">(</span><span class="nx">eventStr</span><span class="p">,</span> <span class="nx">method</span><span class="p">,</span> <span class="nx">thisArg</span><span class="p">,</span> <span class="p">{</span> <span class="nx">once</span><span class="o">:</span> <span class="kc">true</span> <span class="p">});</span>
-      <span class="p">},</span></pre></div>             </td>           </tr>                               <tr id="section-40">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-40">&#182;</a>               </div>               <p>Subscribe to an event, and execute immediately if that event was ever published before.</p>
+      <span class="p">},</span></pre></div>             </td>           </tr>                               <tr id="section-39">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-39">&#182;</a>               </div>               <p>Subscribe to an event, and execute immediately if that event was ever published before.</p>
 
 <p>If executed immediately, the subscriber will get as parameters the last values sent with the event.</p>
 
@@ -565,7 +551,7 @@ To mark the function execution as unsuccessful
 </ul>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">recoup</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">eventStr</span><span class="p">,</span> <span class="nx">method</span><span class="p">,</span> <span class="nx">thisArg</span><span class="p">)</span> <span class="p">{</span>
         <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">sub</span><span class="p">(</span><span class="nx">eventStr</span><span class="p">,</span> <span class="nx">method</span><span class="p">,</span> <span class="nx">thisArg</span><span class="p">,</span> <span class="p">{</span> <span class="nx">recoup</span><span class="o">:</span> <span class="kc">true</span> <span class="p">});</span>
       <span class="p">},</span>
-      </pre></div>             </td>           </tr>                               <tr id="section-41">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-41">&#182;</a>               </div>               <p>Schedule an event to publish, using <em>Seeds.Scheduler</em>. </p>
+      </pre></div>             </td>           </tr>                               <tr id="section-40">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-40">&#182;</a>               </div>               <p>Schedule an event to publish, using <em>Seeds.Scheduler</em>. </p>
 
 <ul>
 <li><strong>schedule(eventString, [arg1, ... [argN]])</strong> identical to <em>PubSub.pub()</em>.</li>
@@ -579,7 +565,7 @@ which you need to trigger by using <code>now()</code>, <code>delay()</code> etc.
           <span class="p">[</span><span class="k">this</span><span class="p">.</span><span class="nx">pub</span><span class="p">,</span> <span class="k">this</span><span class="p">].</span><span class="nx">concat</span><span class="p">(</span><span class="nb">Array</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">slice</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">arguments</span><span class="p">))</span>
         <span class="p">);</span>
       <span class="p">}</span>
-    <span class="p">}</span>
+    <span class="p">},</span></pre></div>             </td>           </tr>                               <tr id="section-41">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-41">&#182;</a>               </div>               <h4>PubSub Constants</h4>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nx">PUBLIC_API</span><span class="o">:</span> <span class="p">[</span><span class="s1">&#39;pub&#39;</span><span class="p">,</span> <span class="s1">&#39;sub&#39;</span><span class="p">,</span> <span class="s1">&#39;unsub&#39;</span><span class="p">,</span> <span class="s1">&#39;once&#39;</span><span class="p">,</span> <span class="s1">&#39;recoup&#39;</span><span class="p">]</span>
   <span class="p">};</span></pre></div>             </td>           </tr>                               <tr id="section-42">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-42">&#182;</a>               </div>               <h1>Seeds.Scheduler</h1>
 
 <p>Scheduler allows you to work with timed callbacks through a simple, clear API.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nx">Seeds</span><span class="p">.</span><span class="nx">Scheduler</span> <span class="o">=</span> <span class="nx">Seeds</span><span class="p">.</span><span class="nx">Sked</span> <span class="o">=</span> <span class="p">{</span></pre></div>             </td>           </tr>                               <tr id="section-43">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-43">&#182;</a>               </div>               <p>Create a scheduled task.</p>
@@ -704,32 +690,25 @@ no way of controlling it once it starts.</p>             </td>             <td c
 <p>Conditionally allow the execution of functions in your application.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nx">Seeds</span><span class="p">.</span><span class="nx">Permit</span> <span class="o">=</span> <span class="p">{</span></pre></div>             </td>           </tr>                               <tr id="section-55">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-55">&#182;</a>               </div>               <p>Create an instance of <em>Seeds.Permit</em>.</p>
 
 <ul>
-<li><strong>create(options)</strong>
-<ul><li><em>options</em> a hash of options for the instance; available options:
-<ul><li><em>onAllow</em> callback for when a function was allowed to execute;</li>
-<li><em>onDisallow</em> callback for when a function was disallowed from executing;</li>
-<li><em>delegate</em> as an alternative to defining the two callbacks above directly 
-on the <em>Permit</em> object, you can define a delegate that implements those methods;</li></ul></li></ul></li>
-<li><strong>create(evaluator, [thisArg])</strong> convenience method to create a new <em>Permit</em> instance 
+<li><strong>create([evaluator, [thisArg]])</strong> convenience method to create a new <em>Permit</em> instance 
 and define the evaluator directly. Signature is identical to <em>Permit.evaluator</em>.</li>
-</ul>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nx">create</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">options</span><span class="p">,</span> <span class="nx">thisArg</span><span class="p">)</span> <span class="p">{</span>
+</ul>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nx">create</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">evalFunc</span><span class="p">,</span> <span class="nx">thisArg</span><span class="p">)</span> <span class="p">{</span>
 
       <span class="kd">var</span> <span class="nx">permit</span> <span class="o">=</span> <span class="nx">Seeds</span><span class="p">.</span><span class="nx">create</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">_instanceMethods</span><span class="p">);</span>
+      <span class="kd">var</span> <span class="nx">pubsub</span> <span class="o">=</span> <span class="nx">Seeds</span><span class="p">.</span><span class="nx">facade</span><span class="p">(</span><span class="nx">Seeds</span><span class="p">.</span><span class="nx">PS</span><span class="p">.</span><span class="nx">create</span><span class="p">(),</span> <span class="nx">permit</span><span class="p">,</span> <span class="nx">Seeds</span><span class="p">.</span><span class="nx">PS</span><span class="p">.</span><span class="nx">PUBLIC_API</span><span class="p">);</span>
 
-      <span class="nx">Seeds</span><span class="p">.</span><span class="nx">mixin</span><span class="p">(</span><span class="nx">permit</span><span class="p">,</span> <span class="p">{</span>
+      <span class="nx">Seeds</span><span class="p">.</span><span class="nx">mixin</span><span class="p">(</span><span class="nx">permit</span><span class="p">,</span> <span class="nx">pubsub</span><span class="p">,</span> <span class="p">{</span>
         <span class="nx">_functions</span><span class="o">:</span> <span class="p">{},</span> 
         <span class="nx">_evaluator</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">expr</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">expr</span><span class="p">;</span> <span class="p">},</span> 
         <span class="nx">_thisArg</span><span class="o">:</span> <span class="k">this</span>
       <span class="p">});</span>
-      </pre></div>             </td>           </tr>                               <tr id="section-56">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-56">&#182;</a>               </div>               <p>Extend the <em>Seeds.Permit</em> instance with the sent options.
-Particularly useful for attaching delegate functions (see <em>Seeds.delegate</em>).</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="nx">options</span> <span class="o">===</span> <span class="s1">&#39;object&#39;</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="p">(</span><span class="nx">options</span> <span class="k">instanceof</span> <span class="nb">RegExp</span><span class="p">))</span> <span class="p">{</span>
-        <span class="nx">Seeds</span><span class="p">.</span><span class="nx">mixin</span><span class="p">(</span><span class="nx">permit</span><span class="p">,</span> <span class="nx">options</span><span class="p">);</span>
-      <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="nx">options</span> <span class="o">!==</span> <span class="s1">&#39;undefined&#39;</span><span class="p">)</span> <span class="p">{</span>
-        <span class="nx">permit</span><span class="p">.</span><span class="nx">evaluator</span><span class="p">(</span><span class="nx">options</span><span class="p">,</span> <span class="nx">thisArg</span><span class="p">);</span>
+      
+      <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="nx">evalFunc</span> <span class="o">!==</span> <span class="kc">undefined</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">permit</span><span class="p">.</span><span class="nx">evaluator</span><span class="p">(</span><span class="nx">evalFunc</span><span class="p">,</span> <span class="nx">thisArg</span><span class="p">);</span>
       <span class="p">}</span>
       
       <span class="k">return</span> <span class="nx">permit</span><span class="p">;</span>
-    <span class="p">},</span></pre></div>             </td>           </tr>                               <tr id="section-57">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-57">&#182;</a>               </div>               <h3>Seeds.Permit API</h3>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nx">_instanceMethods</span><span class="o">:</span> <span class="p">{</span></pre></div>             </td>           </tr>                               <tr id="section-58">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-58">&#182;</a>               </div>               <p>This method matches the expression to the evaluator, to decide whether to allow the execution of the function.</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">_isAllowed</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">expr</span><span class="p">)</span> <span class="p">{</span>
+    <span class="p">},</span></pre></div>             </td>           </tr>                               <tr id="section-56">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-56">&#182;</a>               </div>               <h3>Seeds.Permit API</h3>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nx">_instanceMethods</span><span class="o">:</span> <span class="p">{</span></pre></div>             </td>           </tr>                               <tr id="section-57">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-57">&#182;</a>               </div>               <p>This method matches the expression to the evaluator, to decide whether to allow the execution of the function.</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">_isAllowed</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">expr</span><span class="p">)</span> <span class="p">{</span>
         <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="k">this</span><span class="p">.</span><span class="nx">_evaluator</span> <span class="o">===</span> <span class="s1">&#39;string&#39;</span><span class="p">)</span> <span class="p">{</span>
           <span class="k">return</span> <span class="nx">expr</span> <span class="o">===</span> <span class="k">this</span><span class="p">.</span><span class="nx">_evaluator</span><span class="p">;</span>
         <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="k">this</span><span class="p">.</span><span class="nx">_evaluator</span> <span class="o">===</span> <span class="s1">&#39;function&#39;</span><span class="p">)</span> <span class="p">{</span>
@@ -738,7 +717,7 @@ Particularly useful for attaching delegate functions (see <em>Seeds.delegate</em
           <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">_evaluator</span><span class="p">.</span><span class="nx">test</span><span class="p">(</span><span class="nx">expr</span><span class="p">);</span>
         <span class="p">}</span>
         <span class="k">return</span> <span class="kc">false</span><span class="p">;</span>
-      <span class="p">},</span></pre></div>             </td>           </tr>                               <tr id="section-59">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-59">&#182;</a>               </div>               <p>Allow a function for a set of user roles.</p>
+      <span class="p">},</span></pre></div>             </td>           </tr>                               <tr id="section-58">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-58">&#182;</a>               </div>               <p>Allow a function for a set of user roles.</p>
 
 <ul>
 <li><strong>allow(expr, originalFunction)</strong>
@@ -764,18 +743,18 @@ which can only be executed when the provided expression makes the evaluator retu
             <span class="k">if</span> <span class="p">(</span><span class="nx">permit</span><span class="p">.</span><span class="nx">_isAllowed</span><span class="p">(</span><span class="nx">f</span><span class="p">.</span><span class="nx">expr</span><span class="p">))</span> <span class="p">{</span>
               <span class="cm">/* allow */</span>
               <span class="kd">var</span> <span class="nx">ret</span> <span class="o">=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">func</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
-              <span class="nx">Seeds</span><span class="p">.</span><span class="nx">delegate</span><span class="p">(</span><span class="nx">permit</span><span class="p">,</span> <span class="s1">&#39;onAllow&#39;</span><span class="p">,</span> <span class="p">[</span><span class="nx">f</span><span class="p">.</span><span class="nx">locked</span><span class="p">].</span><span class="nx">concat</span><span class="p">(</span><span class="nb">Array</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">slice</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">arguments</span><span class="p">)));</span>
+              <span class="nx">permit</span><span class="p">.</span><span class="nx">pub</span><span class="p">(</span><span class="s1">&#39;allow&#39;</span><span class="p">,</span> <span class="nx">f</span><span class="p">.</span><span class="nx">locked</span><span class="p">,</span> <span class="nb">Array</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">slice</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">arguments</span><span class="p">));</span>
               <span class="k">return</span> <span class="nx">ret</span><span class="p">;</span>
             <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
               <span class="cm">/* disallow */</span>
-              <span class="nx">Seeds</span><span class="p">.</span><span class="nx">delegate</span><span class="p">(</span><span class="nx">permit</span><span class="p">,</span> <span class="s1">&#39;onDisallow&#39;</span><span class="p">,</span> <span class="p">[</span><span class="nx">f</span><span class="p">.</span><span class="nx">locked</span><span class="p">].</span><span class="nx">concat</span><span class="p">(</span><span class="nb">Array</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">slice</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">arguments</span><span class="p">)));</span>
+              <span class="nx">permit</span><span class="p">.</span><span class="nx">pub</span><span class="p">(</span><span class="s1">&#39;disallow&#39;</span><span class="p">,</span> <span class="nx">f</span><span class="p">.</span><span class="nx">locked</span><span class="p">,</span> <span class="nb">Array</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">slice</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">arguments</span><span class="p">));</span>
             <span class="p">}</span>
           <span class="p">};</span>
           <span class="k">return</span> <span class="nx">f</span><span class="p">.</span><span class="nx">locked</span><span class="p">;</span>
         <span class="p">}</span>
         <span class="k">return</span> <span class="kc">null</span><span class="p">;</span>
       <span class="p">},</span>
-      </pre></div>             </td>           </tr>                               <tr id="section-60">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-60">&#182;</a>               </div>               <p>Set the evaluator for the permit.</p>
+      </pre></div>             </td>           </tr>                               <tr id="section-59">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-59">&#182;</a>               </div>               <p>Set the evaluator for the permit.</p>
 
 <ul>
 <li><strong>evaluator(ev, [thisArg])</strong>
@@ -790,27 +769,11 @@ Return a truthy value if the expression passes and a falsy value otherwise.</p> 
         <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
       <span class="p">}</span>
     <span class="p">}</span>
-  <span class="p">};</span></pre></div>             </td>           </tr>                               <tr id="section-61">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-61">&#182;</a>               </div>               <h1>Utility methods</h1>             </td>             <td class="code">               <div class="highlight"><pre></pre></div>             </td>           </tr>                               <tr id="section-62">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-62">&#182;</a>               </div>               <p><em>Seeds.delegate</em> implements the delegation pattern.</p>
-
-<ul>
-<li><strong>delegate(obj, name, [arg1, ...[argN]])</strong>
-<ul><li><em>obj</em> the object on which to apply the delegation</li>
-<li><em>name</em> the name of the function to delegate</li>
-<li><em>arg1...argN</em> the arguments to pass to the function</li></ul></li>
-</ul>
-
-<p>The action will be triggered on <em>obj.delegate</em> if present, or <em>obj</em> itself otherwise.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nx">Seeds</span><span class="p">.</span><span class="nx">delegate</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">obj</span><span class="p">,</span> <span class="nx">name</span><span class="p">)</span> <span class="p">{</span>
-    <span class="kd">var</span> <span class="nx">delegate</span> <span class="o">=</span> <span class="nx">obj</span><span class="p">.</span><span class="nx">delegate</span> <span class="o">||</span> <span class="nx">obj</span><span class="p">;</span>
-    <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="nx">delegate</span><span class="p">[</span><span class="nx">name</span><span class="p">]</span> <span class="o">===</span> <span class="s1">&#39;function&#39;</span><span class="p">)</span> <span class="p">{</span>
-      <span class="k">return</span> <span class="nx">delegate</span><span class="p">[</span><span class="nx">name</span><span class="p">].</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nb">Array</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">slice</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">arguments</span><span class="p">,</span> <span class="mi">2</span><span class="p">));</span>
-    <span class="p">}</span>
-    <span class="k">return</span> <span class="kc">true</span><span class="p">;</span>
-  <span class="p">};</span>
-  </pre></div>             </td>           </tr>                               <tr id="section-63">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-63">&#182;</a>               </div>               <p><em>Seeds.guid</em> generates random GUIDs (Global Unique IDs) for things.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nx">Seeds</span><span class="p">.</span><span class="nx">guid</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+  <span class="p">};</span></pre></div>             </td>           </tr>                               <tr id="section-60">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-60">&#182;</a>               </div>               <h1>Utility methods</h1>             </td>             <td class="code">               <div class="highlight"><pre>  </pre></div>             </td>           </tr>                               <tr id="section-61">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-61">&#182;</a>               </div>               <p><em>Seeds.guid</em> generates random GUIDs (Global Unique IDs) for things.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nx">Seeds</span><span class="p">.</span><span class="nx">guid</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
     <span class="kd">var</span> <span class="nx">S4</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="p">(((</span><span class="mi">1</span><span class="o">+</span><span class="nb">Math</span><span class="p">.</span><span class="nx">random</span><span class="p">())</span><span class="o">*</span><span class="mh">0x10000</span><span class="p">)</span><span class="o">|</span><span class="mi">0</span><span class="p">).</span><span class="nx">toString</span><span class="p">(</span><span class="mi">16</span><span class="p">).</span><span class="nx">substring</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span> <span class="p">};</span>
     <span class="k">return</span> <span class="p">(</span><span class="nx">S4</span><span class="p">()</span><span class="o">+</span><span class="nx">S4</span><span class="p">()</span><span class="o">+</span><span class="s2">&quot;-&quot;</span><span class="o">+</span><span class="nx">S4</span><span class="p">()</span><span class="o">+</span><span class="s2">&quot;-&quot;</span><span class="o">+</span><span class="nx">S4</span><span class="p">()</span><span class="o">+</span><span class="s2">&quot;-&quot;</span><span class="o">+</span><span class="nx">S4</span><span class="p">()</span><span class="o">+</span><span class="s2">&quot;-&quot;</span><span class="o">+</span><span class="nx">S4</span><span class="p">()</span><span class="o">+</span><span class="nx">S4</span><span class="p">()</span><span class="o">+</span><span class="nx">S4</span><span class="p">());</span>
   <span class="p">};</span>
-  </pre></div>             </td>           </tr>                               <tr id="section-64">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-64">&#182;</a>               </div>               <p><em>Seeds.mixin</em> takes an arbitrary number of objects as arguments and mixes them into the first object.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nx">Seeds</span><span class="p">.</span><span class="nx">mixin</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+  </pre></div>             </td>           </tr>                               <tr id="section-62">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-62">&#182;</a>               </div>               <p><em>Seeds.mixin</em> takes an arbitrary number of objects as arguments and mixes them into the first object.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nx">Seeds</span><span class="p">.</span><span class="nx">mixin</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
     <span class="kd">var</span> <span class="nx">obj</span> <span class="o">=</span> <span class="nx">arguments</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
     <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">arguments</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
       <span class="kd">var</span> <span class="nx">ext</span> <span class="o">=</span> <span class="nx">arguments</span><span class="p">[</span><span class="nx">i</span><span class="p">];</span>
@@ -821,11 +784,53 @@ Return a truthy value if the expression passes and a falsy value otherwise.</p> 
       <span class="p">}</span>
     <span class="p">}</span>
     <span class="k">return</span> <span class="nx">obj</span><span class="p">;</span>
-  <span class="p">};</span></pre></div>             </td>           </tr>                               <tr id="section-65">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-65">&#182;</a>               </div>               <p><em>Seeds.create</em> implements prototypal inheritance, as suggested in
+  <span class="p">};</span></pre></div>             </td>           </tr>                               <tr id="section-63">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-63">&#182;</a>               </div>               <p><em>Seeds.create</em> implements prototypal inheritance, as suggested in
 <a href="http://javascript.crockford.com/prototypal.html">this article</a> by Douglas Crockford.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nx">Seeds</span><span class="p">.</span><span class="nx">create</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">o</span><span class="p">)</span> <span class="p">{</span>
     <span class="kd">var</span> <span class="nx">C</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{};</span>
     <span class="nx">C</span><span class="p">.</span><span class="nx">prototype</span> <span class="o">=</span> <span class="nx">o</span><span class="p">;</span>
     <span class="k">return</span> <span class="k">new</span> <span class="nx">C</span><span class="p">();</span>
+  <span class="p">};</span></pre></div>             </td>           </tr>                               <tr id="section-64">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-64">&#182;</a>               </div>               <p><em>Seeds.facade</em> returns a facade for a source object containing the desired subset of methods.</p>
+
+<ul>
+<li>**facade(sourceObj, destObj, api)
+<ul><li><em>sourceObj</em> the source object containing the methods;</li>
+<li><em>destObj</em> the destination object to which to bind the methods;</li>
+<li><em>api</em> a mapping for the methods to include in the facade:
+<ul><li>if it's an array, the facade method names will have the same name 
+as the ones in the source object;</li>
+<li>if it's a hash, the key will be the method name from the source object
+and the value will be the name to use in the facade.</li></ul></li></ul></li>
+</ul>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nx">Seeds</span><span class="p">.</span><span class="nx">facade</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">sourceObj</span><span class="p">,</span> <span class="nx">destObj</span><span class="p">,</span> <span class="nx">api</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">facade</span> <span class="o">=</span> <span class="p">{},</span> <span class="nx">i</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">Array</span><span class="p">.</span><span class="nx">isArray</span><span class="p">(</span><span class="nx">api</span><span class="p">))</span> <span class="p">{</span>
+      <span class="k">for</span> <span class="p">(</span><span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">api</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">facade</span><span class="p">[</span><span class="nx">api</span><span class="p">[</span><span class="nx">i</span><span class="p">]]</span> <span class="o">=</span> <span class="nx">Seeds</span><span class="p">.</span><span class="nx">bind</span><span class="p">(</span><span class="nx">sourceObj</span><span class="p">,</span> <span class="nx">destObj</span><span class="p">,</span> <span class="nx">api</span><span class="p">[</span><span class="nx">i</span><span class="p">]);</span>
+      <span class="p">}</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="nx">api</span> <span class="o">===</span> <span class="s1">&#39;object&#39;</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">for</span> <span class="p">(</span><span class="nx">i</span> <span class="k">in</span> <span class="nx">api</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nx">api</span><span class="p">.</span><span class="nx">hasOwnProperty</span><span class="p">(</span><span class="nx">i</span><span class="p">))</span> <span class="p">{</span>
+          <span class="nx">facade</span><span class="p">[</span><span class="nx">api</span><span class="p">[</span><span class="nx">i</span><span class="p">]]</span> <span class="o">=</span> <span class="nx">Seeds</span><span class="p">.</span><span class="nx">bind</span><span class="p">(</span><span class="nx">sourceObj</span><span class="p">,</span> <span class="nx">destObj</span><span class="p">,</span> <span class="nx">i</span><span class="p">);</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="nx">facade</span><span class="p">;</span>
+  <span class="p">};</span></pre></div>             </td>           </tr>                               <tr id="section-65">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-65">&#182;</a>               </div>               <p><em>Seeds.bind</em> implements functionality similar to <em>Function.bind</em>
+in that it attaches a method to a different context.</p>
+
+<ul>
+<li>**bind(sourceObj, destObj, methodName)
+<ul><li><em>sourceObj</em> the original object where the method was defined;</li>
+<li><em>destObj</em> destination object to which to bind the function;</li>
+<li><em>methodName</em> the name of the property to bind.</li></ul></li>
+</ul>
+
+<p>In addition to the usual bind behavior, <em>Seeds.bind</em> detects method chaining
+and keeps it intact with the new context.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nx">Seeds</span><span class="p">.</span><span class="nx">bind</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">sourceObj</span><span class="p">,</span> <span class="nx">destObj</span><span class="p">,</span> <span class="nx">methodName</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+      <span class="kd">var</span> <span class="nx">ret</span> <span class="o">=</span> <span class="nx">sourceObj</span><span class="p">[</span><span class="nx">methodName</span><span class="p">].</span><span class="nx">apply</span><span class="p">(</span><span class="nx">sourceObj</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+      <span class="cm">/* detect method chaining */</span>
+      <span class="k">return</span> <span class="nx">ret</span> <span class="o">===</span> <span class="nx">sourceObj</span> <span class="o">?</span> <span class="nx">destObj</span> <span class="o">:</span> <span class="nx">ret</span><span class="p">;</span>
+    <span class="p">};</span>
   <span class="p">};</span>
   
 <span class="p">})(</span><span class="k">this</span><span class="p">);</span>
