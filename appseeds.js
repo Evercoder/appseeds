@@ -27,7 +27,7 @@
   }
 
   // Current version of the application, using [semantic versioning](http://semver.org/).
-  AppSeeds.version = '0.7.0';
+  Seeds.version = '0.7.0';
 
   // Polyfills, mostly for IE, around missing Array methods like [indexOf](https://gist.github.com/1034425).
   if(!Array.isArray) {
@@ -49,7 +49,7 @@
   // 
   // Using a state chart to organize your application helps your modules react to state-specific events 
   // in a clear, maintainable way.
-  AppSeeds.StateManager = AppSeeds.SM = {
+  Seeds.StateManager = Seeds.SM = {
     
     // Creates a new instance of State Manager. Used as follows:
     // 
@@ -59,10 +59,10 @@
     // * **create(options)**
     //    * *options* a configuration object. Available options:
     //      * *states* one or more space-separated state names, or an array of such strings;
-    //      * *onEnter* (delegatable) callback for when *enter* is executed on a state;
-    //      * *onExit* (delegatable) callback for when *exit* is executed on a state;
-    //      * *onStay* (delegatable) callback for when *stay* is executed on a state;
-    //      * *onAct* (delegatable) callback for when an action is triggered on a state;
+    //      * *onEnter* (delegatable) *callback(state)* for when *enter* is executed on a state;
+    //      * *onExit* (delegatable) *callback(state)* for when *exit* is executed on a state;
+    //      * *onStay* (delegatable) *callback(state)* for when *stay* is executed on a state;
+    //      * *onAct* (delegatable) *callback(action, state)* for when an action is triggered on a state;
     //      * *delegate* delegate for the object.
     create: function(options) {
 
@@ -507,7 +507,7 @@
   // 
   // Simple PubSub implementation.
   // Events can be namespaced like this: `namespace:event`
-  AppSeeds.PubSub = AppSeeds.PS = {
+  Seeds.PubSub = Seeds.PS = {
   
     // Create a PubSub instance.
     // 
@@ -636,7 +636,7 @@
       schedule: function() {
         if (!Seeds.Scheduler) return null;
         return Seeds.Scheduler.create.apply(
-          AppSeeds.Scheduler, 
+          Seeds.Scheduler, 
           [this.pub, this].concat(Array.prototype.slice.call(arguments))
         );
       }
@@ -646,7 +646,7 @@
   // Seeds.Scheduler
   // ===============
   // Scheduler allows you to work with timed callbacks through a simple, clear API.
-  AppSeeds.Scheduler = AppSeeds.Sked = {
+  Seeds.Scheduler = Seeds.Sked = {
 
     // Create a scheduled task.
     //  
@@ -784,7 +784,7 @@
   // Seeds.Permit
   // ============
   // Conditionally allow the execution of functions in your application.
-  AppSeeds.Permit = {
+  Seeds.Permit = {
 
     // Create an instance of *Seeds.Permit*.
     // 
@@ -849,7 +849,7 @@
             }
           } 
           if (!fId) {
-            this._functions[fId = AppSeeds.guid()] = { func: originalFunction, expr: expr };
+            this._functions[fId = Seeds.guid()] = { func: originalFunction, expr: expr };
           }
           var f = this._functions[fId], permit = this;
           f.locked = function() {
@@ -895,7 +895,7 @@
   //    * *arg1...argN* the arguments to pass to the function
   //
   // The action will be triggered on *obj.delegate* if present, or *obj* itself otherwise.
-  AppSeeds.delegate = function(obj, name) {
+  Seeds.delegate = function(obj, name) {
     var delegate = obj.delegate || obj;
     if (typeof delegate[name] === 'function') {
       return delegate[name].apply(this, Array.prototype.slice.call(arguments, 2));
@@ -904,13 +904,13 @@
   };
   
   // *Seeds.guid* generates random GUIDs (Global Unique IDs) for things.
-  AppSeeds.guid = function() {
+  Seeds.guid = function() {
     var S4 = function() { return (((1+Math.random())*0x10000)|0).toString(16).substring(1); };
     return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
   };
   
   // *Seeds.mixin* takes an arbitrary number of objects as arguments and mixes them into the first object.
-  AppSeeds.mixin = function() {
+  Seeds.mixin = function() {
     var obj = arguments[0];
     for (var i = 1; i < arguments.length; i++) {
       var ext = arguments[i];
@@ -925,7 +925,7 @@
 
   // *Seeds.create* implements prototypal inheritance, as suggested in
   // [this article](http://javascript.crockford.com/prototypal.html) by Douglas Crockford.
-  AppSeeds.create = function(o) {
+  Seeds.create = function(o) {
     var C = function() {};
     C.prototype = o;
     return new C();

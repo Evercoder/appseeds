@@ -1,10 +1,10 @@
-/*globals test asyncTest expect ok strictEqual stop start AppSeeds Seeds console*/
+/*globals test asyncTest expect ok strictEqual stop start Seeds console*/
 
 /* ------------------------------------------------------------------------ */
 module('Seeds.StateManager');
 
 test('StateManager implied root state', function() {
-	var sm = AppSeeds.StateManager.create('state1 state2');
+	var sm = Seeds.StateManager.create('state1 state2');
 	sm.go('state1');
 	strictEqual(sm.current, 'state1', 'state navigation');
 	sm.go('state2');
@@ -204,7 +204,7 @@ test("StateManager.context on state transitions", function() {
 
 test("StateManager.stay()", function() {
   expect(3);
-  var sm = AppSeeds.StateManager.create();
+  var sm = Seeds.StateManager.create();
   sm.add([
     'state1 state2',
     'state1 -> state11 state12',
@@ -229,7 +229,7 @@ test("StateManager.stay()", function() {
 
 test("StateManager.stay() to define default substate", function() {
   expect(2);
-  var sm = AppSeeds.StateManager.create();
+  var sm = Seeds.StateManager.create();
   sm.add([
     'state1 state2',
     'state1 -> state11 state12',
@@ -258,7 +258,7 @@ test("StateManager.stay() to define default substate", function() {
 
 test("StateManager: defaultSubstate", function() {
   expect(1);
-  var sm = AppSeeds.StateManager.create();
+  var sm = Seeds.StateManager.create();
   sm.add([
     'state1 state2',
     'state1 -> !state11 state12',
@@ -272,7 +272,7 @@ test("StateManager: defaultSubstate", function() {
 
 test("StateManager: overwrite defaultSubstate", function() {
   expect(1);
-  var sm = AppSeeds.StateManager.create();
+  var sm = Seeds.StateManager.create();
   sm.add([
     'state1 state2',
     'state1 -> !state11',
@@ -287,7 +287,7 @@ test("StateManager: overwrite defaultSubstate", function() {
 
 test("StateManager: defaultSubstate for root", function() {
   expect(1);
-  var sm = AppSeeds.StateManager.create();
+  var sm = Seeds.StateManager.create();
   sm.add('state1 !state2');
   sm.go('state1').go('root');
 
@@ -369,7 +369,7 @@ module('Seeds.PubSub');
 
 test('PubSub basic use case', function() {
 	expect(2);
-	var ps = AppSeeds.PubSub.create();
+	var ps = Seeds.PubSub.create();
 	ps.sub('topic', function() {
 		ok('here!', 'single subscriber');
 	});
@@ -385,7 +385,7 @@ test('PubSub basic use case', function() {
 
 test('PubSub.once()', function() {
   expect(7);
-  var ps = AppSeeds.PubSub.create(), ran = 0;
+  var ps = Seeds.PubSub.create(), ran = 0;
   ps.sub('topic', function() {
     ok('here!', 'im a recurring subscriber');
   })
@@ -404,7 +404,7 @@ test('PubSub.once()', function() {
 
 test('PubSub.sub() to multiple events, .once() to multiple events', function() {
   expect(9);
-  var ps = AppSeeds.PubSub.create();
+  var ps = Seeds.PubSub.create();
   ps.sub('topic1 topic2 topic3', function() {
     ok('here!', 'im a subscriber');
   });
@@ -431,7 +431,7 @@ test('PubSub.unsub()', function() {
 
 test('PubSub: namespaced events', function() {
   expect(2);
-  var ps = AppSeeds.PubSub.create();
+  var ps = Seeds.PubSub.create();
   ps.sub('namespace:topic1', function() {
     ok('here!', 'subscriber to topic1 in namespace');
   });
@@ -449,7 +449,7 @@ test('PubSub: namespaced events', function() {
 
 test('PubSub: nested namespaces', function() {
   expect(3);
-  var ps = AppSeeds.PubSub.create();
+  var ps = Seeds.PubSub.create();
   ps.sub('parent:child:event', function() {
     ok('here!', 'subscribed to specific event');
   });
@@ -467,7 +467,7 @@ test('PubSub: nested namespaces', function() {
 
 test('PubSub.recoup()', function() {
   expect(4);
-  var ps = AppSeeds.PubSub.create();
+  var ps = Seeds.PubSub.create();
   ps.pub('event1', 1, 2, 3);
   ps.pub('event2', 1, 2, 3);
   ps.recoup('event1', function() {
@@ -481,7 +481,7 @@ test('PubSub.recoup()', function() {
 
 test("PubSub.schedule() sync behavior", function() {
   expect(1);
-  var ps = AppSeeds.PubSub.create();
+  var ps = Seeds.PubSub.create();
   ps.sub('event', function() {
     strictEqual(arguments.length, 3, 'correct number of arguments');
   });
@@ -493,7 +493,7 @@ module('Seeds.Scheduler');
 
 test('Scheduler sync behavior', function() {
   expect(2);
-  var schedule = AppSeeds.Scheduler.create(function() {
+  var schedule = Seeds.Scheduler.create(function() {
     ok('here', 'callback executed!');
     strictEqual(arguments.length, 3, 'correct arguments');
     // strictEqual(this, self, 'correct thisArg');
@@ -506,7 +506,7 @@ module('Seeds.Permit');
 
 test('Permit basic setup', function() {
   expect(2);
-  var permit = AppSeeds.Permit.create();
+  var permit = Seeds.Permit.create();
   var myapp = {
     doSomething: permit.allow('admin', function() {
       ok('here!', 'entered method');
@@ -525,7 +525,7 @@ test('Permit basic setup', function() {
 
 test("Permit: self-delegation", function() {
   expect(2);
-  var permit = AppSeeds.Permit.create({
+  var permit = Seeds.Permit.create({
     onDisallow: function() {
       ok('here!', 'did disallow');
     },
@@ -557,7 +557,7 @@ test("Permit: external delegate", function() {
       ok('here!', 'did allow');
     }
   };
-  var permit = AppSeeds.Permit.create({
+  var permit = Seeds.Permit.create({
     delegate: d
   });
   
@@ -697,7 +697,7 @@ asyncTest('StateManager: daisy-chained ASYNC behavior', function() {
 module("Scheduler ASYNC");
 asyncTest('Scheduler async: delay + reset', function() {
   expect(1);
-  var schedule = AppSeeds.Scheduler.create(function() {
+  var schedule = Seeds.Scheduler.create(function() {
     ok('here', 'callback executed!');
   });
   schedule.delay(200);
@@ -714,7 +714,7 @@ asyncTest('Scheduler async: delay + reset', function() {
 
 asyncTest('Scheduler async: repeat + reset', function() {
   expect(5);
-  var schedule = AppSeeds.Scheduler.create(function() {
+  var schedule = Seeds.Scheduler.create(function() {
     ok('here', 'callback executed!');
   });
   schedule.repeat(100);
@@ -734,7 +734,7 @@ asyncTest('Scheduler async: repeat + reset', function() {
 
 asyncTest('Scheduler.throttle()', function() {
   expect(3);
-  var task = AppSeeds.Scheduler.create(function() {
+  var task = Seeds.Scheduler.create(function() {
     ok('here', 'callback executed');
   }).throttle(1000);
   var interval = window.setInterval(function() {
@@ -762,7 +762,7 @@ asyncTest('Scheduler.delayed()', function() {
 
 asyncTest('Scheduler.throttled()', function() {
   expect(3);
-  var f = AppSeeds.Scheduler.throttled(function(){
+  var f = Seeds.Scheduler.throttled(function(){
     ok('here');    
   }, 1000);
   var interval = window.setInterval(f, 50);
