@@ -26,10 +26,10 @@
     AppSeeds = Seeds = root.AppSeeds = root.Seeds = {};
   }
 
-  // Current version of the application, using [semantic versioning](http://semver.org/)
+  // Current version of the application, using [semantic versioning](http://semver.org/).
   AppSeeds.version = '0.7.0';
 
-  // Polyfills, mostly for IE, around missing Array methods like [indexOf](https://gist.github.com/1034425)
+  // Polyfills, mostly for IE, around missing Array methods like [indexOf](https://gist.github.com/1034425).
   if(!Array.isArray) {
     Array.isArray = function (vArg) { return Object.prototype.toString.call(vArg) === "[object Array]"; };
   }
@@ -41,7 +41,14 @@
   }
 
   // Seeds.StateManager
-  // ====
+  // ==================
+  // Alias: *Seeds.SM*
+  //
+  // *StateManager* implements a hierarchical state chart closely aligned with David Harel's definition 
+  // from hi seminal paper *Statecharts: A Visual Formalism For Complex Systems*.
+  // 
+  // Using a state chart to organize your application helps your modules react to state-specific events 
+  // in a clear, maintainable way.
   AppSeeds.StateManager = AppSeeds.SM = {
     
     // Creates a new instance of State Manager. Used as follows:
@@ -55,11 +62,9 @@
     //      * *states* one or more space-separated state names, or an array of such strings;
     //      convenience method for *StateManager.add(states)*
     create: function(options) {
-      var C = function() {};
-      C.prototype = this._instanceMethods;
-      var stateManager = new C();
 
-      Seeds.extend(stateManager, {
+      var stateManager = Seeds.create(this._instanceMethods);
+      Seeds.mixin(stateManager, {
         _status: Seeds.StateManager.STATUS_READY,
         root: 'root',
         _states: {},
@@ -94,16 +99,16 @@
     STATUS_TRANSITIONING: 0x02,
     // The state manager was paused as part of an asynchronous transition.
     STATUS_ASYNC: 0x03,
-    // The flag to return in *enter*/*exit* to enter asynchronous mode/
+    // The flag to return in *enter*/*exit* to enter asynchronous mode and pause the state manager.
     ASYNC: false,
   
     // ### Seeds.StateManager API
     _instanceMethods: {
 
-      // Name of the root state
+      // Name of the root state.
       root: 'root',
       
-      // Current state. Should not be manually overwritten!
+      // Current state. This should not be manually overwritten!
       current: null,
       
       // Hash for the collection of states, with state name as key and an object
@@ -121,26 +126,14 @@
       // The current status of the state manager.
       _status: null,
 
-      // Where we left off when going into ASYNC mode. We need this in order to resume.
+      // Where we left off when going into ASYNC mode. We need this in order to resume. 
       _queue: null,
 
       // Initialize the state manager (optional, at this point).
       init: function() {
-        if (this._isFunc(this._onInit)) this._onInit.call(this);
+        if (typeof this._onInit === 'function') this._onInit.call(this);
         return this;
       },
-    
-      // Navigates from the current state up to the root state, 
-      // returning the list of state names that make up the branch.
-      _toRoot: function(stateName) {
-        var route = [];
-        while(stateName) {
-          route.push(stateName);
-          stateName = this.state(stateName).parent;
-        }
-        return route;
-      },
-      
       
       //  Get/set information about a state.
       //
@@ -167,6 +160,17 @@
         }
         return substates;
       },
+
+      // Navigates from the current state up to the root state, 
+      // returning the list of state names that make up the branch.
+      _toRoot: function(stateName) {
+        var route = [];
+        while(stateName) {
+          route.push(stateName);
+          stateName = this.state(stateName).parent;
+        }
+        return route;
+      },
     
       // Find the LCA (Lowest Common Ancestor) between two states.
       _lca: function(startState, endState) { 
@@ -181,11 +185,6 @@
           }
         }
         return { exits: exits, entries: entries, lca: lca };
-      },
-    
-      // Check if the argument is a function.
-      _isFunc: function(f) {
-        return typeof f === 'function';
       },
     
       // Parse a state string. See *StateManager.add()* for expected formats.
@@ -222,7 +221,6 @@
         return pairs;
       },
     
-      
       // Transition to a new state in the manager.
       // 
       // Attempting to transition to an inexistent state does nothing and logs a warning.
@@ -252,7 +250,7 @@
         for (i = 0; i < states.exits.length; i++) {
           this.current = states.exits[i];
           this.context = this.state(states.exits[i]).context;
-          if (this._isFunc(this.context.exit)) {
+          if (typeof this.context.exit === 'function') {
             if (this.context.exit.call(this) === Seeds.SM.ASYNC) {
               this._status = Seeds.SM.STATUS_ASYNC;
               this._queue = { exits: states.exits.slice(i+1), entries: states.entries, lca: states.lca };
@@ -269,7 +267,7 @@
         for (i = 0; i < states.entries.length; i++) {
           this.current = states.entries[i];
           this.context = this.state(states.entries[i]).context;
-          if (this._isFunc(this.context.enter)) {
+          if (typeof this.context.enter === 'function') {
             if (this.context.enter.call(this) === Seeds.SM.ASYNC) {
               this._status = Seeds.SM.STATUS_ASYNC;
               this._queue = { exits: [], entries: states.entries.slice(i+1), lca: states.entries[i] };
@@ -286,7 +284,7 @@
           this.go(defaultSubstate);
         } else {
           /* execute 'stay' */
-          if (this._isFunc(this.context.stay)) {
+          if (typeof this.context.stay === 'function') {
             this.context.stay.call(this);
           }
         }
@@ -415,7 +413,7 @@
       _act: function(state, args) {
         this.context = this.state(state).context;
         var action = this.context[args[0]];
-        if (this._isFunc(action) && action.apply(this, Array.prototype.slice.call(args, 1)) === false) return;
+        if (typeof action === 'function' && action.apply(this, Array.prototype.slice.call(args, 1)) === false) return;
         var parentState = this.state(state).parent;
         if (parentState) this._act(parentState, args);   
         return this.context;    
@@ -467,7 +465,7 @@
               }
               
               /* interpret single function as `stay` method */
-              if (this._isFunc(actions)) {
+              if (typeof actions === 'function') {
                 actions = { stay: actions };
               } else if (typeof actions === 'string') {
                 /* 
@@ -494,6 +492,8 @@
 
   // Seeds.PubSub
   // ============
+  // Alias: *Seeds.PS*
+  // 
   // Simple PubSub implementation.
   // Events can be namespaced like this: `namespace:event`
   AppSeeds.PubSub = AppSeeds.PS = {
@@ -502,10 +502,8 @@
     // 
     //  * *options* a configuration object for the PubSub instance.
     create: function(options) {
-      var C = function() {};
-      C.prototype = this._instanceMethods;
-      var ps = new C();
-      Seeds.extend(ps, options, {
+      var ps = Seeds.create(this._instanceMethods);
+      Seeds.mixin(ps, options, {
         _pubsubEvents: {},
         _pubsubHappened: {}
       });
@@ -648,10 +646,8 @@
     //
     // Returns a *StateManager.Scheduler* instance.
     create: function(callback, thisArg) {
-      var C = function() {};
-      C.prototype = this._instanceMethods;
-      var schedule = new C();
-      Seeds.extend(schedule, {
+      var schedule = Seeds.create(this._instanceMethods);
+      Seeds.mixin(schedule, {
         callback: callback,
         args: Array.prototype.slice.call(arguments, 2),
         thisArg: thisArg || this,
@@ -791,10 +787,9 @@
     //    and define the evaluator directly. Signature is identical to *Permit.evaluator*.
     create: function(options, thisArg) {
 
-      var C = function() {};
-      C.prototype = this._instanceMethods;
-      var permit = new C();
-      Seeds.extend(permit, {
+      var permit = Seeds.create(this._instanceMethods);
+
+      Seeds.mixin(permit, {
         _functions: {}, 
         _evaluator: function(expr) { return expr; }, 
         _thisArg: this
@@ -803,7 +798,7 @@
       // Extend the *Seeds.Permit* instance with the sent options.
       // Particularly useful for attaching delegate functions (see *Seeds.delegate*).
       if (typeof options === 'object' && !(options instanceof RegExp)) {
-        Seeds.extend(permit, options);
+        Seeds.mixin(permit, options);
       } else {
         permit.evaluator(options, thisArg);
       }
@@ -849,11 +844,11 @@
           return function() {
             if (permit._isAllowed(f.expr)) {
               /* allow */
-              Seeds.delegate.apply(permit, ['didAllow'].concat(Array.prototype.slice.call(arguments)));
+              Seeds.delegate(permit, 'didAllow', Array.prototype.slice.call(arguments));
               return f.func.apply(this, arguments);
             } else {
               /* disallow */
-              Seeds.delegate.apply(permit, ['didDisallow'].concat(Array.prototype.slice.call(arguments)));
+              Seeds.delegate(permit, 'didDisallow', Array.prototype.slice.call(arguments));
             }
           };
         }
@@ -880,22 +875,22 @@
   // ===============
 
   //  *Seeds.delegate* provides delegate support for all modules.
-  AppSeeds.delegate = function() {
-    var delegate = this.delegate || this;
-    if (typeof delegate[arguments[0]] === 'function') {
-      return delegate[arguments[0]].apply(this, Array.prototype.slice.call(arguments, 1));
+  AppSeeds.delegate = function(obj, name, args) {
+    var delegate = obj.delegate || obj;
+    if (typeof delegate[name] === 'function') {
+      return delegate[name].apply(this, args);
     }
     return true;
   };
   
-  // *Seeds.guid* generates random GUIDs (Global Unique IDs) for stuff.
+  // *Seeds.guid* generates random GUIDs (Global Unique IDs) for things.
   AppSeeds.guid = function() {
     var S4 = function() { return (((1+Math.random())*0x10000)|0).toString(16).substring(1); };
     return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
   };
   
-  // *Seeds.extend* takes an arbitrary number of objects and merges them together into the first object.
-  AppSeeds.extend = function() {
+  // *Seeds.mixin* takes an arbitrary number of objects as arguments and mixes them into the first object.
+  AppSeeds.mixin = function() {
     var obj = arguments[0];
     for (var i = 1; i < arguments.length; i++) {
       var ext = arguments[i];
@@ -906,6 +901,14 @@
       }
     }
     return obj;
+  };
+
+  // *Seeds.create* implements prototypal inheritance, as suggested in
+  // [this article](http://javascript.crockford.com/prototypal.html) by Douglas Crockford.
+  AppSeeds.create = function(o) {
+    var C = function() {};
+    C.prototype = o;
+    return new C();
   };
   
 })(this);
