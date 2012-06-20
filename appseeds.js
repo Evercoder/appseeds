@@ -132,12 +132,6 @@
 
       // Where we left off when going into ASYNC mode. We need this in order to resume. 
       _queue: null,
-
-      // Initialize the state manager (optional, at this point).
-      init: function() {
-        if (typeof this._onInit === 'function') this._onInit.call(this);
-        return this;
-      },
       
       //  Get/set information about a state.
       //
