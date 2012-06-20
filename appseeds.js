@@ -58,9 +58,12 @@
     //      convenience method for *StateManager.add(states)*
     // * **create(options)**
     //    * *options* a configuration object. Available options:
-    //      * *init* a function to execute when we call stateManager.init()
     //      * *states* one or more space-separated state names, or an array of such strings;
-    //      convenience method for *StateManager.add(states)*
+    //      * *onEnter* (delegatable) callback for when *enter* is executed on a state;
+    //      * *onExit* (delegatable) callback for when *exit* is executed on a state;
+    //      * *onStay* (delegatable) callback for when *stay* is executed on a state;
+    //      * *onAct* (delegatable) callback for when an action is triggered on a state;
+    //      * *delegate* delegate for the object.
     create: function(options) {
 
       var stateManager = Seeds.create(this._instanceMethods);
@@ -84,10 +87,11 @@
       if (typeof options === 'string' || Array.isArray(options)) {
         stateManager.add(options);
       } else {
-        stateManager._onInit = options.init;
-        if (options.states) {
-          stateManager.add(options.states);
-        }
+        Seeds.mixin(stateManager, options);
+      }
+      if (stateManager.states) {
+        stateManager.add(states);
+        delete stateManager.states;
       }
       return stateManager;
     },
@@ -257,6 +261,7 @@
               return this;
             }
           }
+          Seeds.delegate(this, 'onExit', this.current);
         }
       
         /* set common ancestor as current state */
@@ -274,6 +279,7 @@
               return this;
             }
           }
+          Seeds.delegate(this, 'onEnter', this.current);
         }
 
         this._status = Seeds.SM.STATUS_READY;
@@ -287,6 +293,7 @@
           if (typeof this.context.stay === 'function') {
             this.context.stay.call(this);
           }
+          Seeds.delegate(this, 'onStay', this.current);
         }
       },
 
@@ -413,7 +420,11 @@
       _act: function(state, args) {
         this.context = this.state(state).context;
         var action = this.context[args[0]];
-        if (typeof action === 'function' && action.apply(this, Array.prototype.slice.call(args, 1)) === false) return;
+        if (typeof action === 'function') {
+          var ret = action.apply(this, Array.prototype.slice.call(args, 1));
+          Seeds.delegate(this, 'onAct', args[0], state);
+          if (ret === false) return;
+        }
         var parentState = this.state(state).parent;
         if (parentState) this._act(parentState, args);   
         return this.context;    
@@ -779,8 +790,8 @@
     // 
     //  * **create(options)**
     //    * *options* a hash of options for the instance; available options:
-    //      * *didAllow* callback for when a function was allowed to execute;
-    //      * *didDisallow* callback for when a function was disallowed from executing;
+    //      * *onAllow* callback for when a function was allowed to execute;
+    //      * *onDisallow* callback for when a function was disallowed from executing;
     //      * *delegate* as an alternative to defining the two callbacks above directly 
     //        on the *Permit* object, you can define a delegate that implements those methods;
     //  * **create(evaluator, [thisArg])** convenience method to create a new *Permit* instance 
@@ -799,7 +810,7 @@
       // Particularly useful for attaching delegate functions (see *Seeds.delegate*).
       if (typeof options === 'object' && !(options instanceof RegExp)) {
         Seeds.mixin(permit, options);
-      } else {
+      } else if (typeof options !== 'undefined') {
         permit.evaluator(options, thisArg);
       }
       
@@ -841,16 +852,18 @@
             this._functions[fId = AppSeeds.guid()] = { func: originalFunction, expr: expr };
           }
           var f = this._functions[fId], permit = this;
-          return function() {
+          f.locked = function() {
             if (permit._isAllowed(f.expr)) {
               /* allow */
-              Seeds.delegate(permit, 'didAllow', Array.prototype.slice.call(arguments));
-              return f.func.apply(this, arguments);
+              var ret = f.func.apply(this, arguments);
+              Seeds.delegate(permit, 'onAllow', [f.locked].concat(Array.prototype.slice.call(arguments)));
+              return ret;
             } else {
               /* disallow */
-              Seeds.delegate(permit, 'didDisallow', Array.prototype.slice.call(arguments));
+              Seeds.delegate(permit, 'onDisallow', [f.locked].concat(Array.prototype.slice.call(arguments)));
             }
           };
+          return f.locked;
         }
         return null;
       },
@@ -874,11 +887,18 @@
   // Utility methods
   // ===============
 
-  //  *Seeds.delegate* provides delegate support for all modules.
-  AppSeeds.delegate = function(obj, name, args) {
+  // *Seeds.delegate* implements the delegation pattern.
+  // 
+  //  * **delegate(obj, name, [arg1, ...[argN]])**
+  //    * *obj* the object on which to apply the delegation
+  //    * *name* the name of the function to delegate
+  //    * *arg1...argN* the arguments to pass to the function
+  //
+  // The action will be triggered on *obj.delegate* if present, or *obj* itself otherwise.
+  AppSeeds.delegate = function(obj, name) {
     var delegate = obj.delegate || obj;
     if (typeof delegate[name] === 'function') {
-      return delegate[name].apply(this, args);
+      return delegate[name].apply(this, Array.prototype.slice.call(arguments, 2));
     }
     return true;
   };

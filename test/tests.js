@@ -1,5 +1,6 @@
 /*globals test asyncTest expect ok strictEqual stop start AppSeeds Seeds console*/
 
+/* ------------------------------------------------------------------------ */
 module('Seeds.StateManager');
 
 test('StateManager implied root state', function() {
@@ -327,101 +328,43 @@ test("StateManager.when(<string>,<string>,<function>)", function() {
   strictEqual(arr[2], 'B.stay');
 });
 
-asyncTest('StateManager: ASYNC behavior', function() {
-  expect(1);
-  var sm = Seeds.SM.create('A B C');
-  sm.add('A -> !A1 A2 A3', 'B -> B1 B2 B3', 'C -> C1 C2 C3');
-  sm.add('A1 -> !A11 A12 A13', 'B1 -> B11 B12 B13', 'C1 -> C11 C12 C13');
-
-  sm.when({
-    'A': {
-      enter: function() {
-        window.setTimeout(function() {
-          sm.resume();
-        }, 50);
-        return false;
-      }
+test("StateManager delegate", function() {
+  var callbacks = [];
+  var expected = ['enterA','enterA1','enterA12','stayA12','exitA12','exitA1','exitA','enterB','stayB','actdoB','actdoroot'];
+  expect(expected.length);
+  var sm = Seeds.SM.create({
+    onEnter: function(state) {
+      callbacks.push('enter' + state);
     },
-    'A1': {},
-    'A11': {
-      stay: function() {
-        ok('here','got in A11');
-      }
+    onExit: function(state) {
+      callbacks.push('exit' + state);
+    },
+    onStay: function(state) {
+      callbacks.push('stay' + state);
+    },
+    onAct: function(action, state) {
+      callbacks.push('act' + action + state);
     }
+  })
+  .add('A B C', 'A -> A1 A2', 'A1 -> A11 A12 A13');
+  sm.
+  when('root', {
+    do: function() {}
+  }).
+  when('B', {
+    do: function() {}
   });
+  sm.go('A12').go('B');
+  sm.act('do');
 
-  sm.go('A');
-  window.setTimeout(function() {
-    start();
-  },200);
+  for (var i = 0; i < expected.length; i++) {
+    strictEqual(callbacks[i], expected[i]);
+  }
+
+
 });
 
-asyncTest('StateManager: daisy-chained ASYNC behavior', function() {
-  expect(1);
-  var sm = Seeds.SM.create('A B C');
-  sm.add('A -> A1 A2 A3', 'B -> B1 B2 B3', 'C -> C1 C2 C3');
-  sm.add('A1 -> A11 A12 A13', 'B1 -> B11 B12 B13', 'C1 -> C11 C12 C13');
-
-  sm.when({
-    'A': {
-      enter: function() {
-        window.setTimeout(function() {
-          sm.resume();
-        }, 50);
-        return false;
-      }
-    },
-    'A1': {
-      enter: function() {
-        window.setTimeout(function() {
-          sm.resume();
-        }, 50);
-        return false;
-      }
-    },
-    'A11': {
-      enter: function() {
-        window.setTimeout(function() {
-          sm.resume();
-        }, 50);
-        return false;
-      },
-      stay: function() {
-        ok('here','got in A11');
-      }
-    },
-    'B': {
-      exit: function() {
-        window.setTimeout(function() {
-          sm.resume();
-        }, 50);
-        return false;
-      }
-    },
-    'B1': {
-      exit: function() {
-        window.setTimeout(function() {
-          sm.resume();
-        }, 50);
-        return false;
-      }
-    },
-    'B11': {
-      exit: function() {
-        window.setTimeout(function() {
-          sm.resume();
-        }, 50);
-        return false;
-      }
-    }
-  });
-
-  sm.go('B11').go('A11');
-  window.setTimeout(function() {
-    start();
-  },500);
-});
-
+/* ------------------------------------------------------------------------ */
 module('Seeds.PubSub');
 
 test('PubSub basic use case', function() {
@@ -545,6 +488,7 @@ test("PubSub.schedule() sync behavior", function() {
   ps.schedule('event', 1, 2, 3).now();
 });
 
+/* ------------------------------------------------------------------------ */
 module('Seeds.Scheduler');
 
 test('Scheduler sync behavior', function() {
@@ -557,6 +501,200 @@ test('Scheduler sync behavior', function() {
   schedule.now(1,2,3);
 });
 
+/* ------------------------------------------------------------------------ */
+module('Seeds.Permit');
+
+test('Permit basic setup', function() {
+  expect(2);
+  var permit = AppSeeds.Permit.create();
+  var myapp = {
+    doSomething: permit.allow('admin', function() {
+      ok('here!', 'entered method');
+      strictEqual(arguments.length, 3, 'all arguments received');
+    })
+  };
+  permit.evaluator(function(expr) {
+    return expr === 'admin';
+  });
+  myapp.doSomething('a','b', 'c');
+  permit.evaluator(function(expr) {
+    return expr === 'user';
+  });
+  myapp.doSomething('a','b', 'c');
+});
+
+test("Permit: self-delegation", function() {
+  expect(2);
+  var permit = AppSeeds.Permit.create({
+    onDisallow: function() {
+      ok('here!', 'did disallow');
+    },
+    onAllow: function() {
+      ok('here!', 'did allow');
+    }
+  });
+  
+  var myapp = {
+    doSomething: permit.allow('admin', function() {})
+  };
+  permit.evaluator(function(expr) {
+    return expr === 'admin';
+  });
+  myapp.doSomething();
+  permit.evaluator(function(expr) {
+    return expr === 'user';
+  });
+  myapp.doSomething();
+});
+
+test("Permit: external delegate", function() {
+  expect(2);
+  var d = {
+    onDisallow: function() {
+      ok('here!', 'did disallow');
+    },
+    onAllow: function() {
+      ok('here!', 'did allow');
+    }
+  };
+  var permit = AppSeeds.Permit.create({
+    delegate: d
+  });
+  
+  var myapp = {
+    doSomething: permit.allow('admin', function() {})
+  };
+  permit.evaluator(function(expr) {
+    return expr === 'admin';
+  });
+  myapp.doSomething();
+  permit.evaluator(function(expr) {
+    return expr === 'user';
+  });
+  myapp.doSomething();
+});
+
+test("Permit: evaluator as string", function() {
+  expect(1);
+  var permit = Seeds.Permit.create();
+  permit.evaluator('admin');
+  var f = permit.allow('admin', function() {
+    strictEqual(arguments.length, 3, 'arguments ok');
+  });
+  f(1,2,3);
+  permit.evaluator('user');
+  f(1,2,3);
+});
+
+test("Permit: evaluator as regex", function() {
+  expect(2);
+  var permit = Seeds.Permit.create();
+  permit.evaluator(/^\s+/);
+  var f1 = permit.allow('   s', function() { ok('here'); });
+  var f2 = permit.allow(' s', function() { ok('here'); });
+  var f3 = permit.allow('s', function() { ok('here'); });
+  f1();f2();f3();
+});
+
+/* ------------------------------------------------------------------------ */
+module('StateManager ASYNC');
+asyncTest('StateManager: ASYNC behavior', function() {
+  expect(1);
+  var sm = Seeds.SM.create('A B C');
+  sm.add('A -> !A1 A2 A3', 'B -> B1 B2 B3', 'C -> C1 C2 C3');
+  sm.add('A1 -> !A11 A12 A13', 'B1 -> B11 B12 B13', 'C1 -> C11 C12 C13');
+
+  sm.when({
+    'A': {
+      enter: function() {
+        window.setTimeout(function() {
+          sm.resume();
+        }, 50);
+        return false;
+      }
+    },
+    'A1': {},
+    'A11': {
+      stay: function() {
+        ok('here','got in A11');
+      }
+    }
+  });
+
+  sm.go('A');
+  window.setTimeout(function() {
+    start();
+  },200);
+});
+
+asyncTest('StateManager: daisy-chained ASYNC behavior', function() {
+  expect(1);
+  var sm = Seeds.SM.create('A B C');
+  sm.add('A -> A1 A2 A3', 'B -> B1 B2 B3', 'C -> C1 C2 C3');
+  sm.add('A1 -> A11 A12 A13', 'B1 -> B11 B12 B13', 'C1 -> C11 C12 C13');
+
+  sm.when({
+    'A': {
+      enter: function() {
+        window.setTimeout(function() {
+          sm.resume();
+        }, 50);
+        return false;
+      }
+    },
+    'A1': {
+      enter: function() {
+        window.setTimeout(function() {
+          sm.resume();
+        }, 50);
+        return false;
+      }
+    },
+    'A11': {
+      enter: function() {
+        window.setTimeout(function() {
+          sm.resume();
+        }, 50);
+        return false;
+      },
+      stay: function() {
+        ok('here','got in A11');
+      }
+    },
+    'B': {
+      exit: function() {
+        window.setTimeout(function() {
+          sm.resume();
+        }, 50);
+        return false;
+      }
+    },
+    'B1': {
+      exit: function() {
+        window.setTimeout(function() {
+          sm.resume();
+        }, 50);
+        return false;
+      }
+    },
+    'B11': {
+      exit: function() {
+        window.setTimeout(function() {
+          sm.resume();
+        }, 50);
+        return false;
+      }
+    }
+  });
+
+  sm.go('B11').go('A11');
+  window.setTimeout(function() {
+    start();
+  },500);
+});
+
+/* ------------------------------------------------------------------------ */
+module("Scheduler ASYNC");
 asyncTest('Scheduler async: delay + reset', function() {
   expect(1);
   var schedule = AppSeeds.Scheduler.create(function() {
@@ -632,98 +770,4 @@ asyncTest('Scheduler.throttled()', function() {
     window.clearInterval(interval);
     start();
   }, 3200);
-});
-
-module('Seeds.Permit');
-
-test('Permit basic setup', function() {
-  expect(2);
-  var permit = AppSeeds.Permit.create();
-  var myapp = {
-    doSomething: permit.allow('admin', function() {
-      ok('here!', 'entered method');
-      strictEqual(arguments.length, 3, 'all arguments received');
-    })
-  };
-  permit.evaluator(function(expr) {
-    return expr === 'admin';
-  });
-  myapp.doSomething('a','b', 'c');
-  permit.evaluator(function(expr) {
-    return expr === 'user';
-  });
-  myapp.doSomething('a','b', 'c');
-});
-
-test("Permit: self-delegation", function() {
-  expect(2);
-  var permit = AppSeeds.Permit.create({
-    didDisallow: function() {
-      ok('here!', 'did disallow');
-    },
-    didAllow: function() {
-      ok('here!', 'did allow');
-    }
-  });
-  
-  var myapp = {
-    doSomething: permit.allow('admin', function() {})
-  };
-  permit.evaluator(function(expr) {
-    return expr === 'admin';
-  });
-  myapp.doSomething();
-  permit.evaluator(function(expr) {
-    return expr === 'user';
-  });
-  myapp.doSomething();
-});
-
-test("Permit: external delegate", function() {
-  expect(2);
-  var d = {
-    didDisallow: function() {
-      ok('here!', 'did disallow');
-    },
-    didAllow: function() {
-      ok('here!', 'did allow');
-    }
-  };
-  var permit = AppSeeds.Permit.create({
-    delegate: d
-  });
-  
-  var myapp = {
-    doSomething: permit.allow('admin', function() {})
-  };
-  permit.evaluator(function(expr) {
-    return expr === 'admin';
-  });
-  myapp.doSomething();
-  permit.evaluator(function(expr) {
-    return expr === 'user';
-  });
-  myapp.doSomething();
-});
-
-test("Permit: evaluator as string", function() {
-  expect(1);
-  var permit = Seeds.Permit.create();
-  permit.evaluator('admin');
-  var f = permit.allow('admin', function() {
-    strictEqual(arguments.length, 3, 'arguments ok');
-  });
-  f(1,2,3);
-  permit.evaluator('user');
-  f(1,2,3);
-});
-
-test("Permit: evaluator as regex", function() {
-  expect(2);
-  var permit = Seeds.Permit.create();
-  permit.evaluator(/^\s+/);
-  var f1 = permit.allow('   s', function() { ok('here'); });
-  var f2 = permit.allow(' s', function() { ok('here'); });
-  var f3 = permit.allow('s', function() { ok('here'); });
-  f1();f2();f3();
 });
