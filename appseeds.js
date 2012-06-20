@@ -61,7 +61,10 @@
     create: function(options) {
 
       var stateManager = Seeds.create(this._instanceMethods);
-      var pubsub = Seeds.facade(Seeds.PS.create(), stateManager, Seeds.PS.PUBLIC_API);
+      
+      // Mix in a *Seeds.PubSub* instance to use in dispatching events.
+      var pubsub = Seeds.facade(Seeds.PS.create(), Seeds.PS.PUBLIC_API, stateManager);
+
       Seeds.mixin(stateManager, pubsub, {
         _status: Seeds.StateManager.STATUS_READY,
         root: 'root',
@@ -779,7 +782,9 @@
     create: function(evalFunc, thisArg) {
 
       var permit = Seeds.create(this._instanceMethods);
-      var pubsub = Seeds.facade(Seeds.PS.create(), permit, Seeds.PS.PUBLIC_API);
+      
+      // Mix in a *Seeds.PubSub* instance to use in dispatching events.
+      var pubsub = Seeds.facade(Seeds.PS.create(), Seeds.PS.PUBLIC_API, permit);
 
       Seeds.mixin(permit, pubsub, {
         _functions: {}, 
@@ -894,24 +899,25 @@
 
   // *Seeds.facade* returns a facade for a source object containing the desired subset of methods.
   //
-  //  * **facade(sourceObj, destObj, api)
+  //  * **facade(sourceObj, api, destObj)
   //    * *sourceObj* the source object containing the methods;
-  //    * *destObj* the destination object to which to bind the methods;
   //    * *api* a mapping for the methods to include in the facade:
   //      * if it's an array, the facade method names will have the same name 
   //        as the ones in the source object;
   //      * if it's a hash, the key will be the method name from the source object
-  //        and the value will be the name to use in the facade.
-  Seeds.facade = function(sourceObj, destObj, api) {
+  //        and the value will be the name to use in the facade;
+  //    * *destObj* (optional) the destination object to which to bind the methods;
+  //      if ommited, the methods will be re-bound to the facade itself.
+  Seeds.facade = function(sourceObj, api, destObj) {
     var facade = {}, i;
     if (Array.isArray(api)) {
       for (i = 0; i < api.length; i++) {
-        facade[api[i]] = Seeds.bind(sourceObj, destObj, api[i]);
+        facade[api[i]] = Seeds.bind(sourceObj, api[i], destObj || facade);
       }
     } else if (typeof api === 'object') {
       for (i in api) {
         if (api.hasOwnProperty(i)) {
-          facade[api[i]] = Seeds.bind(sourceObj, destObj, i);
+          facade[api[i]] = Seeds.bind(sourceObj, i, destObj || facade);
         }
       }
     }
@@ -921,14 +927,14 @@
   // *Seeds.bind* implements functionality similar to *Function.bind*
   // in that it attaches a method to a different context.
   //
-  //  * **bind(sourceObj, destObj, methodName)
+  //  * **bind(sourceObj, methodName, destObj)
   //    * *sourceObj* the original object where the method was defined;
-  //    * *destObj* destination object to which to bind the function;
-  //    * *methodName* the name of the property to bind.
+  //    * *methodName* the name of the property to bind;
+  //    * *destObj* destination object to which to bind the function.
   // 
   // In addition to the usual bind behavior, *Seeds.bind* detects method chaining
   // and keeps it intact with the new context.
-  Seeds.bind = function(sourceObj, destObj, methodName) {
+  Seeds.bind = function(sourceObj, methodName, destObj) {
     return function() {
       var ret = sourceObj[methodName].apply(sourceObj, arguments);
       /* detect method chaining */
