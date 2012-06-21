@@ -42,6 +42,151 @@
     };
   }
 
+  // Seeds.PubSub
+  // ============
+  // Alias: *Seeds.PS*
+  // 
+  // Simple Publish/Subscribe implementation for the Mediator pattern.
+  // It supports namespaced events like: `namespace:event`.
+  Seeds.PubSub = Seeds.PS = {
+  
+    // Create a PubSub instance.
+    // 
+    //  * *options* a configuration object for the PubSub instance.
+    create: function(options) {
+      var ps = Seeds.o.beget(this._instanceMethods);
+      Seeds.o.mixin(ps, options, {
+        _pubsubEvents: {},
+        _pubsubHappened: {}
+      });
+      return ps;
+    },
+
+    // ### Seeds.PubSub API
+    _instanceMethods: {
+      // Publish an event.
+      //    
+      //  * **pub(event, [arg1, [arg2 ...]])**
+      //    * *event* the event to trigger;
+      //    * *arg1 ... argN* (optional) any number of additional params to pass to the event subscribers.
+      pub: function(eventString) {
+        var eventComponents = this._parseEventNamespace(eventString);
+        var eventArray, i, ilen, j, jlen, args, subscriber, ret, event;
+        for (i = 0, ilen = eventComponents.length; i < ilen; i++) {
+          eventArray = this._pubsubEvents[event = eventComponents[i]] || [];
+          args = Array.prototype.slice.call(arguments, 1);
+          for (j = 0, jlen = eventArray.length; j < jlen; j++) {
+            subscriber = eventArray[j];
+            ret = subscriber[0].apply(subscriber[1] || this, args);
+            if (subscriber[2] && ret !== false) {
+              this.unsub(event, subscriber[0]);
+            }
+          }
+          this._pubsubHappened[event] = args;
+        }
+        return this;
+      },
+      
+      // Parses the namespaced event string to identify its components.
+      _parseEventNamespace: function(event) {
+        var events = [], str = '', ch;
+        for (var i = 0; i < event.length; i++) {
+          if ((ch = event.charAt(i)) === ':') events.push(str);
+          str += ch;
+        }
+        events.push(str);
+        return events;
+      },
+
+      // Subscribe a function to one or more events.
+      //
+      //  * **sub(eventString, method, [thisArg, [flags]])**
+      //    * *eventString* one or more space-separated events;
+      //    * *method* the function to subscribe to the events;
+      //    * *thisArg* (optional) context for the method;
+      //    * *flags* (optional) boleans to configure the subscribers's behavior:
+      //      * *once* if true, the subscriber will self-unsubscribe after the first successful execution. You'll usually use *PubSub.once()* for this;
+      //      * *recoup* if true, the subscriber will execute immediately if the event it subscribes to already happened. You'll usually use *PubSub.recoup()* for this.
+      //
+      // *Careful!* When subscribing a method to multiple events, if the events don't get published
+      // with compatible parameters, you can end up with weird behavior. To avoid this, it's best to
+      // keep a common interface for all events in the list.
+      sub: function(eventStr, method, thisArg, flags) {
+        var events = eventStr.split(/\s+/), event, eventArray, i, len, oldArgs;
+        flags = flags || { once: false, recoup: false };
+        for (i = 0, len = events.length; i < len; i++) {
+          eventArray = this._pubsubEvents[event = events[i]];
+          if (eventArray) {
+            eventArray.push([method, thisArg, flags.once]);
+          } else {
+            this._pubsubEvents[event] = [[method, thisArg, flags.once]];
+          }
+          if (flags.recoup && (oldArgs = this._pubsubHappened[event])) {
+            method.apply(thisArg || this, oldArgs);
+          }
+        }
+        return this;
+      },
+
+      // Unsubscribe a function from one or more events.
+      //
+      //  * **unsub(eventString, method)**
+      //    * *eventString* one or more space-separated events;
+      //    * *method* the function to unsubscribe
+      unsub: function(eventStr, method) {
+        var events = eventStr.split(/\s+/), event, eventArray, newEventArray, i, j;
+        for (i = 0; i < events.length; i++) {
+          eventArray = this._pubsubEvents[event = events[i]];
+          newEventArray = [];
+          for (j = 0; j < eventArray.length; j++) {
+            if (eventArray[j][0] !== method) {
+              newEventArray.push(eventArray[j]);
+            }
+          }
+          this._pubsubEvents[event] = newEventArray;
+        }
+        return this;
+      },
+      
+      // Subscribe to an event once. 
+      // 
+      // The function will be unsubscribed upon successful exectution.
+      // To mark the function execution as unsuccessful 
+      // (and thus keep it subscribed), make it return `false`.
+      //
+      //  * **once(eventString, method, thisArg)** identical to *PubSub.sub()*.
+      once: function(eventStr, method, thisArg) {
+        return this.sub(eventStr, method, thisArg, { once: true });
+      },
+
+      // Subscribe to an event, and execute immediately if that event was ever published before.
+      //
+      // If executed immediately, the subscriber will get as parameters the last values sent with the event.
+      //
+      //  * **recoup(eventString, method, thisArg)** identical to *PubSub.sub()*.
+      recoup: function(eventStr, method, thisArg) {
+        return this.sub(eventStr, method, thisArg, { recoup: true });
+      },
+      
+      // Schedule an event to publish, using *Seeds.Lambda*. 
+      // 
+      // * **schedule(eventString, [arg1, ... [argN]])** identical to *PubSub.pub()*.
+      //
+      // While pub() publishes an event immediately, schedule() returns a scheduled task 
+      // which you need to trigger by using `now()`, `delay()` etc.
+      schedule: function() {
+        if (!Seeds.Lambda) return null;
+        return Seeds.Lambda.create.apply(
+          Seeds.Lambda, 
+          [this.pub, this].concat(Array.prototype.slice.call(arguments))
+        );
+      }
+    },
+
+    // #### PubSub Constants
+    PUBLIC_API: ['pub', 'sub', 'unsub', 'once', 'recoup']
+  };
+
   // Seeds.StateManager
   // ==================
   // Alias: *Seeds.SM*
@@ -332,11 +477,13 @@
               childState = pairs[i][1];
               isDefaultSubstate = pairs[i][2];
               if (!this.state(parentState)) {
-                this.pub('error', 'State ' + parentState + ' is not included in the tree. State not added.');
+                this.pub('error', 'State ' + parentState + 
+                  ' is not included in the tree. State not added.');
                 return;
               }
               if (this.state(childState)) {
-                this.pub('error', 'State ' + childState + ' is already defined. New state not added.');
+                this.pub('error', 'State ' + childState + 
+                  ' is already defined. New state not added.');
               }
               this.state(childState, { 
                 context: {}, 
@@ -345,7 +492,9 @@
               });
               if (isDefaultSubstate) {
                 if (this.state(parentState).defaultSubstate) {
-                  this.pub('error', 'State ' + parentState + ' already has a default substate ' + this.state(parentState).defaultSubstate  + ' which will be overwritten with ' + childState);
+                  this.pub('error', 'State ' + parentState + 
+                    ' already has a default substate ' + this.state(parentState).defaultSubstate  + 
+                    '. It will be overwritten with ' + childState);
                 }
                 this.state(parentState).defaultSubstate = childState;
               }
@@ -486,194 +635,106 @@
     }
   };
 
-  // Seeds.PubSub
+  // Seeds.Lambda
   // ============
-  // Alias: *Seeds.PS*
-  // 
-  // Simple PubSub implementation.
-  // Events can be namespaced like this: `namespace:event`
-  Seeds.PubSub = Seeds.PS = {
-  
-    // Create a PubSub instance.
-    // 
-    //  * *options* a configuration object for the PubSub instance.
-    create: function(options) {
-      var ps = Seeds.o.beget(this._instanceMethods);
-      Seeds.o.mixin(ps, options, {
-        _pubsubEvents: {},
-        _pubsubHappened: {}
-      });
-      return ps;
-    },
+  // *Lambda* supercharges your functions, providing a clear API for delaying, repeating, and limiting their execution.
+  Seeds.Lambda = {
 
-    // ### Seeds.PubSub API
-    _instanceMethods: {
-      // Publish an event.
-      //    
-      //  * **pub(event, [arg1, [arg2 ...]])**
-      //    * *event* the event to trigger;
-      //    * *arg1 ... argN* (optional) any number of additional params to pass to the event subscribers.
-      pub: function(eventString) {
-        var eventComponents = this._parseEventNamespace(eventString);
-        var eventArray, i, ilen, j, jlen, args, subscriber, ret, event;
-        for (i = 0, ilen = eventComponents.length; i < ilen; i++) {
-          eventArray = this._pubsubEvents[event = eventComponents[i]] || [];
-          args = Array.prototype.slice.call(arguments, 1);
-          for (j = 0, jlen = eventArray.length; j < jlen; j++) {
-            subscriber = eventArray[j];
-            ret = subscriber[0].apply(subscriber[1] || this, args);
-            if (subscriber[2] && ret !== false) {
-              this.unsub(event, subscriber[0]);
-            }
-          }
-          this._pubsubHappened[event] = args;
-        }
-        return this;
-      },
-      
-      // Parses the namespaced event string to identify its components.
-      _parseEventNamespace: function(event) {
-        var events = [], str = '', ch;
-        for (var i = 0; i < event.length; i++) {
-          if ((ch = event.charAt(i)) === ':') events.push(str);
-          str += ch;
-        }
-        events.push(str);
-        return events;
-      },
-
-      // Subscribe a function to one or more events.
-      //
-      //  * **sub(eventString, method, [thisArg, [flags]])**
-      //    * *eventString* one or more space-separated events;
-      //    * *method* the function to subscribe to the events;
-      //    * *thisArg* (optional) context for the method;
-      //    * *flags* (optional) boleans to configure the subscribers's behavior:
-      //      * *once* if true, the subscriber will self-unsubscribe after the first successful execution. You'll usually use *PubSub.once()* for this;
-      //      * *recoup* if true, the subscriber will execute immediately if the event it subscribes to already happened. You'll usually use *PubSub.recoup()* for this.
-      //
-      // *Careful!* When subscribing a method to multiple events, if the events don't get published
-      // with compatible parameters, you can end up with weird behavior. To avoid this, it's best to
-      // keep a common interface for all events in the list.
-      sub: function(eventStr, method, thisArg, flags) {
-        var events = eventStr.split(/\s+/), event, eventArray, i, len, oldArgs;
-        flags = flags || { once: false, recoup: false };
-        for (i = 0, len = events.length; i < len; i++) {
-          eventArray = this._pubsubEvents[event = events[i]];
-          if (eventArray) {
-            eventArray.push([method, thisArg, flags.once]);
-          } else {
-            this._pubsubEvents[event] = [[method, thisArg, flags.once]];
-          }
-          if (flags.recoup && (oldArgs = this._pubsubHappened[event])) {
-            method.apply(thisArg || this, oldArgs);
-          }
-        }
-        return this;
-      },
-
-      // Unsubscribe a function from one or more events.
-      //
-      //  * **unsub(eventString, method)**
-      //    * *eventString* one or more space-separated events;
-      //    * *method* the function to unsubscribe
-      unsub: function(eventStr, method) {
-        var events = eventStr.split(/\s+/), event, eventArray, newEventArray, i, j;
-        for (i = 0; i < events.length; i++) {
-          eventArray = this._pubsubEvents[event = events[i]];
-          newEventArray = [];
-          for (j = 0; j < eventArray.length; j++) {
-            if (eventArray[j][0] !== method) {
-              newEventArray.push(eventArray[j]);
-            }
-          }
-          this._pubsubEvents[event] = newEventArray;
-        }
-        return this;
-      },
-      
-      // Subscribe to an event once. 
-      // 
-      // The function will be unsubscribed upon successful exectution.
-      // To mark the function execution as unsuccessful 
-      // (and thus keep it subscribed), make it return `false`.
-      //
-      //  * **once(eventString, method, thisArg)** identical to *PubSub.sub()*.
-      once: function(eventStr, method, thisArg) {
-        return this.sub(eventStr, method, thisArg, { once: true });
-      },
-
-      // Subscribe to an event, and execute immediately if that event was ever published before.
-      //
-      // If executed immediately, the subscriber will get as parameters the last values sent with the event.
-      //
-      //  * **recoup(eventString, method, thisArg)** identical to *PubSub.sub()*.
-      recoup: function(eventStr, method, thisArg) {
-        return this.sub(eventStr, method, thisArg, { recoup: true });
-      },
-      
-      // Schedule an event to publish, using *Seeds.Scheduler*. 
-      // 
-      // * **schedule(eventString, [arg1, ... [argN]])** identical to *PubSub.pub()*.
-      //
-      // While pub() publishes an event immediately, schedule() returns a scheduled task 
-      // which you need to trigger by using `now()`, `delay()` etc.
-      schedule: function() {
-        if (!Seeds.Scheduler) return null;
-        return Seeds.Scheduler.create.apply(
-          Seeds.Scheduler, 
-          [this.pub, this].concat(Array.prototype.slice.call(arguments))
-        );
-      }
-    },
-
-    // #### PubSub Constants
-    PUBLIC_API: ['pub', 'sub', 'unsub', 'once', 'recoup']
-  };
-
-  // Seeds.Scheduler
-  // ===============
-  // Scheduler allows you to work with timed callbacks through a simple, clear API.
-  Seeds.Lambda = Seeds.Scheduler = Seeds.Sked = {
-
-    // Create a scheduled task.
+    // Create a task.
     //  
     //  *  **create(callback, thisArg, [arg1, [arg2 ... ])**
-    //    * *callback* the task to schedule
-    //    * *thisArg* (optional) context for the scheduled task
-    //    * *arg1 ... argN* (optional) additional parameters to send to the task
+    //    * *callback* the function to schedule;
+    //    * *thisArg* (optional) context for the function;
+    //    * *arg1 ... argN* (optional) additional parameters to send to the function.
     //
-    // Returns a *StateManager.Scheduler* instance.
+    // Returns a *StateManager.Lambda* task. Can also be invoked as *Seeds.f()*, for convenience.
     create: function(callback, thisArg) {
-      var schedule = function() {
-        return schedule.now();
+      var f = function() {
+        return f.reset.apply(f, arguments);
       };
-      Seeds.o.mixin(schedule, this._instanceMethods, {
+      Seeds.o.mixin(f, this._instanceMethods, {
         callback: callback,
         args: Array.prototype.slice.call(arguments, 2),
         thisArg: thisArg || this,
-        timeout: null,
-        interval: null,
         limit: null,
         _lastCalled: (new Date()).getTime(),
-        _timerId: null
+        _timerId: null,
+        period: null,
+        type: null
       });
-      return schedule;
+      return f;
     },
 
-    // ### Seeds.Scheduler API
+    // ### Seeds.Lambda API
     _instanceMethods: {
-      // Execute the scheduled task immediately. If the task is throttled (see *Scheduler.throttle()*),
+
+      // Execute the task immediately. If the task is throttled (see *Lambda.throttle()*),
       // it will not be executed with higher frequency than the one imposed by the throttle limit. 
       // 
       // If you provide parameters to this call, they will override the ones declared on *create()*.
-      now: function() {
+      run: function() {
         var now = (new Date()).getTime();
         if (!this.limit || (now - this._lastCalled > this.limit)) {
           this.callback.apply(this.thisArg, arguments.length ? arguments : this.args);
           this._lastCalled = now;
         }
         return this;
+      },
+
+      // Stop the scheduled task.
+      stop: function() {
+        if (this._timerId) {
+          if (this.type === 'delay') {
+            window.clearTimeout(this._timerId);
+          } else if (this.type === 'interval') {
+            window.clearInterval(this._timerId);
+          }
+        }
+        return this;
+      },
+
+      // Reset the timer of the schedule task, effectively postponing its execution.
+      reset: function() {
+        this.stop();
+        var that = this, f = function() { that.run(); };
+        if (this.type === 'delay') {
+          this._timerId = window.setTimeout(f, this.period);
+        } else if (this.type == 'interval') {
+          this._timerId = window.setInterval(f, this.period);
+        } else {
+          this.run.apply(this, arguments);
+        }
+        return this;
+      },
+
+      // Delay task execution with a number of milliseconds.
+      // 
+      //  * **delay(timeout)**
+      //    * *timeout* delay of execution, in milliseconds.
+      delay: function(timeout) {
+        this.type = 'delay';
+        this.period = timeout;
+        return this;
+      },
+
+      // Like *delay*, but also starts the timer.
+      delayed: function(timeout) {
+        return this.delay(timeout).start();
+      },
+
+      // Repeat the execution of the task at a fixed interval.
+      // 
+      //  * **repeat(interval)**
+      //    * *interval* the execution interval
+      repeat: function(interval) {
+        this.type = 'interval';
+        this.period = interval;
+        return this;
+      },
+
+      // Like *repeat*, but also starts the timer.
+      repeated: function(interval) {
+        return this.repeat(interval).start();
       },
 
       // Limit the execution frequency of a task.
@@ -683,55 +744,6 @@
       //      send `0` or `null` to cancel the throttling.
       throttle: function(limit) {
         this.limit = limit;
-        return this;
-      },
-
-      // Reset the timer of the schedule task, effectively postponing its execution.
-      reset: function() {
-        this.stop();
-        if (this.timeout) {
-          this.delay(this.timeout);
-        } else if (this.interval) {
-          this.repeat(this.interval);
-        }
-        return this;
-      },
-      
-      // Delay task execution with a number of milliseconds, similar to `window.setTimeout`.
-      // 
-      //  * **delay(timeout)**
-      //    * *timeout* delay of execution, in milliseconds.
-      //
-      // Can be postponed by calling *reset()*.
-      delay: function(timeout) {
-        var that = this;
-        this.timeout = timeout;
-        this.interval = null;
-        this._timerId = window.setTimeout(function() { that.now(); }, timeout);
-        return this;
-      },
-
-      // Repeat the execution of the task at a fixed interval, similar to `window.setInterval`.
-      // 
-      //  * **repeat(interval)**
-      //    * *interval* the execution interval
-      //
-      // Can be postponed by calling *reset()*.
-      repeat: function(interval) {
-        var that = this;
-        this.interval = interval;
-        this.timeout = null;
-        this._timerId = window.setInterval(function() { that.now(); }, interval);
-        return this;
-      },
-      
-      // Stop the scheduled task. It can be resumed by calling *reset()*.
-      stop: function() {
-        if (this.timeout) {
-          window.clearTimeout(this._timerId);
-        } else if (this.interval) {
-          window.clearInterval(this._timerId);
-        }
         return this;
       }
     }

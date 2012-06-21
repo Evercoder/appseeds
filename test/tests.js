@@ -484,20 +484,20 @@ test("PubSub.schedule() sync behavior", function() {
   ps.sub('event', function() {
     strictEqual(arguments.length, 3, 'correct number of arguments');
   });
-  ps.schedule('event', 1, 2, 3).now();
+  ps.schedule('event', 1, 2, 3).run();
 });
 
 /* ------------------------------------------------------------------------ */
-module('Seeds.Scheduler');
+module('Seeds.Lambda');
 
-test('Scheduler sync behavior', function() {
+test('Lambda sync behavior', function() {
   expect(2);
-  var schedule = Seeds.Scheduler.create(function() {
+  var schedule = Seeds.Lambda.create(function() {
     ok('here', 'callback executed!');
     strictEqual(arguments.length, 3, 'correct arguments');
     // strictEqual(this, self, 'correct thisArg');
   });
-  schedule.now(1,2,3);
+  schedule(1,2,3);
 });
 
 /* ------------------------------------------------------------------------ */
@@ -665,10 +665,10 @@ asyncTest('StateManager: daisy-chained ASYNC behavior', function() {
 });
 
 /* ------------------------------------------------------------------------ */
-module("Scheduler ASYNC");
-asyncTest('Scheduler async: delay + reset', function() {
+module("Lambda ASYNC");
+asyncTest('Lambda async: delay + reset', function() {
   expect(1);
-  var schedule = Seeds.Scheduler.create(function() {
+  var schedule = Seeds.Lambda.create(function() {
     ok('here', 'callback executed!');
   });
   schedule.delay(200);
@@ -683,9 +683,9 @@ asyncTest('Scheduler async: delay + reset', function() {
   }, 1300);
 });
 
-asyncTest('Scheduler async: repeat + reset', function() {
+asyncTest('Lambda async: repeat + reset', function() {
   expect(5);
-  var schedule = Seeds.Scheduler.create(function() {
+  var schedule = Seeds.Lambda.create(function() {
     ok('here', 'callback executed!');
   });
   schedule.repeat(100);
@@ -703,13 +703,13 @@ asyncTest('Scheduler async: repeat + reset', function() {
   }, 2000);
 });
 
-asyncTest('Scheduler.throttle()', function() {
+asyncTest('Lambda.throttle()', function() {
   expect(3);
-  var task = Seeds.Scheduler.create(function() {
+  var task = Seeds.Lambda.create(function() {
     ok('here', 'callback executed');
   }).throttle(1000);
   var interval = window.setInterval(function() {
-    task.now();
+    task.run();
   }, 50);
 
   window.setTimeout(function() {
