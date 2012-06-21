@@ -60,12 +60,12 @@
     //      convenience method for *StateManager.add(states)*
     create: function(options) {
 
-      var stateManager = Seeds.create(this._instanceMethods);
+      var stateManager = Seeds.o.beget(this._instanceMethods);
       
       // Mix in a *Seeds.PubSub* instance to use in dispatching events.
-      var pubsub = Seeds.facade(Seeds.PS.create(), Seeds.PS.PUBLIC_API, stateManager);
+      var pubsub = Seeds.o.facade(Seeds.PS.create(), Seeds.PS.PUBLIC_API, stateManager);
 
-      Seeds.mixin(stateManager, pubsub, {
+      Seeds.o.mixin(stateManager, pubsub, {
         _status: Seeds.StateManager.STATUS_READY,
         root: 'root',
         _states: {},
@@ -194,7 +194,7 @@
             childStates = tmp[1].split(/\s+/);
             break;
           default: 
-            console.warn('String ' + str + ' is an invalid state pair and has been dropped.');
+            this.pub('error', 'String ' + str + ' is an invalid state pair and has been dropped.');
             childStates = [];
             break;
         }
@@ -213,7 +213,7 @@
     
       // Transition to a new state in the manager.
       // 
-      // Attempting to transition to an inexistent state does nothing and logs a warning.
+      // Attempting to transition to an inexistent state does nothing and publishes a warning.
       // Likewise, attempting to transition to the same state as the current one will do nothing.
       // 
       // Parameters:
@@ -222,7 +222,7 @@
       go: function(stateName) {
         var state = this.state(stateName);
         if (state === undefined) {
-          console.warn('State ' + stateName + ' not defined');
+          this.pub('error', 'State ' + stateName + ' not defined');
           return;
         }
         if (this.current !== stateName && this._status === Seeds.SM.STATUS_READY) {
@@ -287,7 +287,7 @@
         if (this._status === Seeds.SM.STATUS_ASYNC) {
           this._walk(this._queue);
         } else {
-          console.warn('State manager is not paused.');
+          this.pub('error', 'State manager is not paused.');
         }
       },
 
@@ -332,11 +332,11 @@
               childState = pairs[i][1];
               isDefaultSubstate = pairs[i][2];
               if (!this.state(parentState)) {
-                console.warn('State ' + parentState + ' is not included in the tree. State not added.');
+                this.pub('error', 'State ' + parentState + ' is not included in the tree. State not added.');
                 return;
               }
               if (this.state(childState)) {
-                console.warn('State ' + childState + ' is already defined. New state not added.');
+                this.pub('error', 'State ' + childState + ' is already defined. New state not added.');
               }
               this.state(childState, { 
                 context: {}, 
@@ -345,8 +345,7 @@
               });
               if (isDefaultSubstate) {
                 if (this.state(parentState).defaultSubstate) {
-                  console.warn('State %s already has a default substate %s which will be overwritten with %s', 
-                    parentState, this.state(parentState).defaultSubstate, childState);
+                  this.pub('error', 'State ' + parentState + ' already has a default substate ' + this.state(parentState).defaultSubstate  + ' which will be overwritten with ' + childState);
                 }
                 this.state(parentState).defaultSubstate = childState;
               }
@@ -381,7 +380,7 @@
           // after the recursive call ends.
           this.context = this._act(this.current, arguments);
         } else {
-          console.warn('State manager is paused, can\'t perform action %s', arguments[0]);
+          this.pub('error', 'State manager is paused, can\'t perform action ' + arguments[0]);
         }
         return this;
       },
@@ -457,7 +456,7 @@
             if (stateName) {
               var state = this.state(stateName);
               if (!state) {
-                console.warn('State %s doesn\'t exist. Actions not added.', stateName);
+                this.pub('error', 'State ' + stateName + ' doesn\'t exist. Actions not added.');
                 return;
               }
               
@@ -499,8 +498,8 @@
     // 
     //  * *options* a configuration object for the PubSub instance.
     create: function(options) {
-      var ps = Seeds.create(this._instanceMethods);
-      Seeds.mixin(ps, options, {
+      var ps = Seeds.o.beget(this._instanceMethods);
+      Seeds.o.mixin(ps, options, {
         _pubsubEvents: {},
         _pubsubHappened: {}
       });
@@ -635,7 +634,7 @@
   // Seeds.Scheduler
   // ===============
   // Scheduler allows you to work with timed callbacks through a simple, clear API.
-  Seeds.Scheduler = Seeds.Sked = {
+  Seeds.Lambda = Seeds.Scheduler = Seeds.Sked = {
 
     // Create a scheduled task.
     //  
@@ -646,8 +645,10 @@
     //
     // Returns a *StateManager.Scheduler* instance.
     create: function(callback, thisArg) {
-      var schedule = Seeds.create(this._instanceMethods);
-      Seeds.mixin(schedule, {
+      var schedule = function() {
+        return schedule.now();
+      };
+      Seeds.o.mixin(schedule, this._instanceMethods, {
         callback: callback,
         args: Array.prototype.slice.call(arguments, 2),
         thisArg: thisArg || this,
@@ -733,40 +734,6 @@
         }
         return this;
       }
-    },
-
-    // ### Seeds.Scheduler static methods
-
-    // Convenience method to get a throttled version of a function,
-    // without having to manually instantiate *Seeds.Scheduler*. 
-    //
-    //  * **throttled(callback, limit)**
-    //    * *callback* the original function
-    //    * *limit* the maximum frequency of executuin, in milliseconds
-    //
-    // Returns a throttled version of the function. If you want more control
-    // (e.g. change the throttle limit), create it the old fashioned way.
-    throttled: function(callback, limit) {
-      var task = Seeds.Scheduler.create(callback).throttle(limit);
-      return function() { task.now(); };
-    },
-
-    // Convenience method to get a delayed version of a function,
-    // without having to manually instantiate *Seeds.Scheduler*. 
-    //
-    //  * **delayed(callback, timeout)**
-    //    * *callback* the original function
-    //    * *timeout* the delay in milliseconds
-    //
-    // Returns a delayed version of the function. Note that this is a plain function.
-    // If you want more control (e.g. *stop*, *reset*), create it the normal way:
-    // *Seeds.Scheduler.create(callback).delay(timeout)* which returns the scheduler instance.
-    // 
-    // This is the reason why there's no *repeated()* convenience method, because you'd have 
-    // no way of controlling it once it starts.
-    delayed: function(callback, timeout) {
-      var task = Seeds.Scheduler.create(callback).delay(timeout).stop();
-      return function() { task.reset(); };
     }
   };
   
@@ -781,12 +748,12 @@
     //    and define the evaluator directly. Signature is identical to *Permit.evaluator*.
     create: function(evalFunc, thisArg) {
 
-      var permit = Seeds.create(this._instanceMethods);
+      var permit = Seeds.o.beget(this._instanceMethods);
       
       // Mix in a *Seeds.PubSub* instance to use in dispatching events.
-      var pubsub = Seeds.facade(Seeds.PS.create(), Seeds.PS.PUBLIC_API, permit);
+      var pubsub = Seeds.o.facade(Seeds.PS.create(), Seeds.PS.PUBLIC_API, permit);
 
-      Seeds.mixin(permit, pubsub, {
+      Seeds.o.mixin(permit, pubsub, {
         _functions: {}, 
         _evaluator: function(expr) { return expr; }, 
         _thisArg: this
@@ -831,7 +798,7 @@
             }
           } 
           if (!fId) {
-            this._functions[fId = Seeds.guid()] = { func: originalFunction, expr: expr };
+            this._functions[fId = Seeds.o.guid()] = { func: originalFunction, expr: expr };
           }
           var f = this._functions[fId], permit = this;
           f.locked = function() {
@@ -869,77 +836,84 @@
   // Utility methods
   // ===============
   
-  // *Seeds.guid* generates random GUIDs (Global Unique IDs) for things.
-  Seeds.guid = function() {
-    var S4 = function() { return (((1+Math.random())*0x10000)|0).toString(16).substring(1); };
-    return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
-  };
-  
-  // *Seeds.mixin* takes an arbitrary number of objects as arguments and mixes them into the first object.
-  Seeds.mixin = function() {
-    var obj = arguments[0];
-    for (var i = 1; i < arguments.length; i++) {
-      var ext = arguments[i];
-      if (ext) {
-        for (var j in ext) {
-          if (ext.hasOwnProperty(j)) obj[j] = ext[j];
+  // ## Seeds.o 
+  // *Seeds.o* implements useful methods for object manipulation.
+  Seeds.o = {
+    // *guid* generates random GUIDs (Global Unique IDs) for things.
+    guid: function() {
+      var S4 = function() { return (((1+Math.random())*0x10000)|0).toString(16).substring(1); };
+      return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
+    },
+
+    // *mixin* takes an arbitrary number of objects as arguments and mixes them into the first object.
+    mixin: function() {
+      var obj = arguments[0];
+      for (var i = 1; i < arguments.length; i++) {
+        var ext = arguments[i];
+        if (ext) {
+          for (var j in ext) {
+            if (ext.hasOwnProperty(j)) obj[j] = ext[j];
+          }
         }
       }
-    }
-    return obj;
-  };
+      return obj;
+    },
 
-  // *Seeds.create* implements prototypal inheritance, as suggested in
-  // [this article](http://javascript.crockford.com/prototypal.html) by Douglas Crockford.
-  Seeds.create = function(o) {
-    var C = function() {};
-    C.prototype = o;
-    return new C();
-  };
+    // *beget* implements prototypal inheritance, as suggested in
+    // [this article](http://javascript.crockford.com/prototypal.html) by Douglas Crockford.
+    beget: function(o) {
+      var C = function() {};
+      C.prototype = o;
+      return new C();
+    },
 
-  // *Seeds.facade* returns a facade for a source object containing the desired subset of methods.
-  //
-  //  * **facade(sourceObj, api, destObj)
-  //    * *sourceObj* the source object containing the methods;
-  //    * *api* a mapping for the methods to include in the facade:
-  //      * if it's an array, the facade method names will have the same name 
-  //        as the ones in the source object;
-  //      * if it's a hash, the key will be the method name from the source object
-  //        and the value will be the name to use in the facade;
-  //    * *destObj* (optional) the destination object to which to bind the methods;
-  //      if ommited, the methods will be re-bound to the facade itself.
-  Seeds.facade = function(sourceObj, api, destObj) {
-    var facade = {}, i;
-    if (Array.isArray(api)) {
-      for (i = 0; i < api.length; i++) {
-        facade[api[i]] = Seeds.bind(sourceObj, api[i], destObj || facade);
-      }
-    } else if (typeof api === 'object') {
-      for (i in api) {
-        if (api.hasOwnProperty(i)) {
-          facade[api[i]] = Seeds.bind(sourceObj, i, destObj || facade);
+    // *facade* returns a facade for a source object containing the desired subset of methods.
+    //
+    //  * **facade(sourceObj, api, destObj)**
+    //    * *sourceObj* the source object containing the methods;
+    //    * *api* a mapping for the methods to include in the facade:
+    //      * if it's an array, the facade method names will have the same name 
+    //        as the ones in the source object;
+    //      * if it's a hash, the key will be the method name from the source object
+    //        and the value will be the name to use in the facade;
+    //    * *destObj* (optional) the destination object to which to bind the methods;
+    //      if ommited, the methods will be re-bound to the facade itself.
+    facade: function(sourceObj, api, destObj) {
+      var facade = {}, i;
+      if (Array.isArray(api)) {
+        for (i = 0; i < api.length; i++) {
+          facade[api[i]] = Seeds.o.bind(sourceObj, api[i], destObj || facade);
+        }
+      } else if (typeof api === 'object') {
+        for (i in api) {
+          if (api.hasOwnProperty(i)) {
+            facade[api[i]] = Seeds.o.bind(sourceObj, i, destObj || facade);
+          }
         }
       }
+      return facade;
+    },
+
+    // *bind* implements functionality similar to *Function.bind*
+    // in that it attaches a method to a different context.
+    //
+    //  * **bind(sourceObj, methodName, destObj)**
+    //    * *sourceObj* the original object where the method was defined;
+    //    * *methodName* the name of the property to bind;
+    //    * *destObj* destination object to which to bind the function.
+    // 
+    // In addition to the usual bind behavior, *bind* detects method chaining
+    // and keeps it intact with the new context.
+    bind: function(sourceObj, methodName, destObj) {
+      return function() {
+        var ret = sourceObj[methodName].apply(sourceObj, arguments);
+        /* detect method chaining */
+        return ret === sourceObj ? destObj : ret;
+      };
     }
-    return facade;
   };
 
-  // *Seeds.bind* implements functionality similar to *Function.bind*
-  // in that it attaches a method to a different context.
-  //
-  //  * **bind(sourceObj, methodName, destObj)
-  //    * *sourceObj* the original object where the method was defined;
-  //    * *methodName* the name of the property to bind;
-  //    * *destObj* destination object to which to bind the function.
-  // 
-  // In addition to the usual bind behavior, *Seeds.bind* detects method chaining
-  // and keeps it intact with the new context.
-  Seeds.bind = function(sourceObj, methodName, destObj) {
-    return function() {
-      var ret = sourceObj[methodName].apply(sourceObj, arguments);
-      /* detect method chaining */
-      return ret === sourceObj ? destObj : ret;
-    };
+  Seeds.f = function() {
+    return Seeds.Lambda.create.apply(Seeds.Lambda, arguments);
   };
-  
 })(this);

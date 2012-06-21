@@ -717,28 +717,3 @@ asyncTest('Scheduler.throttle()', function() {
     start();
   }, 3200);
 });
-
-asyncTest('Scheduler.delayed()', function() {
-  expect(2);
-  var f = function() {
-    ok('here');
-  };
-  f();
-  f = Seeds.Sked.delayed(f, 100);
-  f();
-  window.setTimeout(function() {
-    start();
-  }, 400);
-});
-
-asyncTest('Scheduler.throttled()', function() {
-  expect(3);
-  var f = Seeds.Scheduler.throttled(function(){
-    ok('here');    
-  }, 1000);
-  var interval = window.setInterval(f, 50);
-  window.setTimeout(function() {
-    window.clearInterval(interval);
-    start();
-  }, 3200);
-});
