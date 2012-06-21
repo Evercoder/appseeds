@@ -657,7 +657,7 @@
         args: Array.prototype.slice.call(arguments, 2),
         thisArg: thisArg || this,
         limit: null,
-        _lastCalled: (new Date()).getTime(),
+        _lastCalled: null,
         _timerId: null,
         period: null,
         type: null
@@ -674,7 +674,7 @@
       // If you provide parameters to this call, they will override the ones declared on *create()*.
       run: function() {
         var now = (new Date()).getTime();
-        if (!this.limit || (now - this._lastCalled > this.limit)) {
+        if (!this.limit || !this._lastCalled || (now - this._lastCalled > this.limit)) {
           this.callback.apply(this.thisArg, arguments.length ? arguments : this.args);
           this._lastCalled = now;
         }
@@ -744,102 +744,6 @@
       //      send `0` or `null` to cancel the throttling.
       throttle: function(limit) {
         this.limit = limit;
-        return this;
-      }
-    }
-  };
-  
-  // Seeds.Permit
-  // ============
-  // Conditionally allow the execution of functions in your application.
-  Seeds.Permit = {
-
-    // Create an instance of *Seeds.Permit*.
-    // 
-    //  * **create([evaluator, [thisArg]])** convenience method to create a new *Permit* instance 
-    //    and define the evaluator directly. Signature is identical to *Permit.evaluator*.
-    create: function(evalFunc, thisArg) {
-
-      var permit = Seeds.o.beget(this._instanceMethods);
-      
-      // Mix in a *Seeds.PubSub* instance to use in dispatching events.
-      var pubsub = Seeds.o.facade(Seeds.PS.create(), Seeds.PS.PUBLIC_API, permit);
-
-      Seeds.o.mixin(permit, pubsub, {
-        _functions: {}, 
-        _evaluator: function(expr) { return expr; }, 
-        _thisArg: this
-      });
-      
-      if (typeof evalFunc !== undefined) {
-        permit.evaluator(evalFunc, thisArg);
-      }
-      
-      return permit;
-    },
-
-    // ### Seeds.Permit API
-    _instanceMethods: {
-      // This method matches the expression to the evaluator, to decide whether to allow the execution of the function.
-      _isAllowed: function(expr) {
-        if (typeof this._evaluator === 'string') {
-          return expr === this._evaluator;
-        } else if (typeof this._evaluator === 'function') {
-          return this._evaluator.call(this._thisArg, expr);
-        } else if (this._evaluator instanceof RegExp) {
-          return this._evaluator.test(expr);
-        }
-        return false;
-      },
-
-      // Allow a function for a set of user roles.
-      //
-      //  * **allow(expr, originalFunction)**
-      //    * *expr* expression to evaluate
-      //    * *originalFunction* the function to protect
-      //
-      // Returns a protected version of the function, 
-      // which can only be executed when the provided expression makes the evaluator return a truthy value (see *Permit.evaluator*).
-      allow: function(expr, originalFunction) {
-        var i, fId;
-        if (typeof originalFunction === 'function') {
-          for (i in this._functions) {
-            if (this._functions.hasOwnProperty(i) && this._functions[i].func === originalFunction) {
-              fId = i;
-              break;
-            }
-          } 
-          if (!fId) {
-            this._functions[fId = Seeds.o.guid()] = { func: originalFunction, expr: expr };
-          }
-          var f = this._functions[fId], permit = this;
-          f.locked = function() {
-            if (permit._isAllowed(f.expr)) {
-              /* allow */
-              var ret = f.func.apply(this, arguments);
-              permit.pub('allow', f.locked, Array.prototype.slice.call(arguments));
-              return ret;
-            } else {
-              /* disallow */
-              permit.pub('disallow', f.locked, Array.prototype.slice.call(arguments));
-            }
-          };
-          return f.locked;
-        }
-        return null;
-      },
-      
-      // Set the evaluator for the permit.
-      //
-      //  * **evaluator(ev, [thisArg])**
-      //    * *ev* the evaluator; can be a function, string or regular expression;
-      //    * *thisArg* (optional) if the evaluator is a function, you can also send a context for it.
-      //
-      // When the evaluator is a function, it will receive a single parameter: the expression to evaluate.
-      // Return a truthy value if the expression passes and a falsy value otherwise.
-      evaluator: function(ev, thisArg) {
-        this._evaluator = ev;
-        if (thisArg !== undefined) this._thisArg = thisArg;
         return this;
       }
     }
