@@ -1,5 +1,7 @@
 module.exports = function(grunt) {
 
+  grunt.loadNpmTasks('grunt-docco');
+
   // Project configuration.
   grunt.initConfig({
     lint: {
@@ -16,10 +18,13 @@ module.exports = function(grunt) {
         src: 'appseeds.js',
         dest: 'appseeds.min.js'
       }
+    },
+    docco: {
+      all: ['appseeds.js']
     }
   });
 
   // Default task.
-  grunt.registerTask('default', 'lint min qunit');
+  grunt.registerTask('default', 'lint min qunit docco');
 
 };

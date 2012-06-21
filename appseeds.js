@@ -913,6 +913,8 @@
     }
   };
 
+  // ## Seeds.f
+  // Use this as an alias for *Seeds.Lambda.create*.
   Seeds.f = function() {
     return Seeds.Lambda.create.apply(Seeds.Lambda, arguments);
   };
