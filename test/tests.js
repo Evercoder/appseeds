@@ -637,7 +637,7 @@ asyncTest('Lambda async: repeat + reset', function() {
 });
 
 asyncTest('Lambda.throttle()', function() {
-  expect(3);
+  expect(4);
   var task = Seeds.Lambda.create(function() {
     ok('here', 'callback executed');
   }).throttle(1000);

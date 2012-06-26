@@ -5,7 +5,9 @@ module.exports = function(grunt) {
   // Project configuration.
   grunt.initConfig({
     lint: {
-      all: ['grunt.js', 'appseeds.js']
+      grunt: 'grunt.js', 
+      seeds: 'appseeds.js', 
+      plugins: ['plugins/backbone-seeds/backbone.seeds.js']
     },
     jshint: {
       options: { browser: true }
@@ -14,13 +16,18 @@ module.exports = function(grunt) {
       index: ['test/test.html']
     },
     min: {
-      dist: {
+      seeds: {
         src: 'appseeds.js',
         dest: 'appseeds.min.js'
+      },
+      backbone: {
+        src: 'plugins/backbone-seeds/backbone.seeds.js',
+        dest: 'plugins/backbone-seeds/backbone.seeds.min.js'
       }
     },
     docco: {
-      all: ['appseeds.js']
+      seeds: 'appseeds.js', 
+      plugins: ['plugins/backbone-seeds/backbone.seeds.js']
     }
   });
 
