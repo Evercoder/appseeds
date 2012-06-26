@@ -22,7 +22,6 @@ Backbone.StateRouter = Backbone.Router.extend({
 	constructor: function(options) {
 		Backbone.Router.prototype.constructor.call(this, options);
 		this.manager = options.manager;
-		this._stateRoutes = {};
 		if (this.manager) {
 			var router = this;
 			// Attach a listener to the *stay* event in the state manager.
@@ -41,6 +40,7 @@ Backbone.StateRouter = Backbone.Router.extend({
 	route: function(route, name) {
 		Backbone.Router.prototype.route.apply(this, arguments);
 		var ret = /^state:(.+)/.exec(name);
+		if (!this._stateRoutes) this._stateRoutes = {};
 		if (ret) this._stateRoutes[ret[1]] = route;
 	}
 });
