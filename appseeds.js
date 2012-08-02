@@ -365,20 +365,24 @@
       // 
       //  * *stateName* the name of the state to which to transition
       go: function(stateName) {
-        var state = this.state(stateName);
+        var state = this.state(stateName),
+            args = Array.prototype.slice.call(arguments, 1) || [];
+        console.log(args);
         if (state === undefined) {
           this.pub('error', 'State ' + stateName + ' not defined');
           return;
         }
         if (this.current !== stateName && this._status === Seeds.SM.STATUS_READY) {
           var states = this._lca(this.current, stateName);
-          this._walk(states);
+          args.unshift(states);
+          this._walk.apply(this, args);
         }
         return this;
       },
 
       _walk: function(states) {
-        var i, action;
+        var i, action, args = Array.prototype.slice.call(arguments, 1);
+        console.log('_walk', args);
         this._status = Seeds.SM.STATUS_TRANSITIONING;
 
         /* exit to common ancestor */
@@ -386,13 +390,15 @@
           this.current = states.exits[i];
           this.context = this.state(states.exits[i]).context;
           if (typeof this.context.exit === 'function') {
-            if (this.context.exit.call(this) === Seeds.SM.ASYNC) {
+            if (this.context.exit.apply(this, args) === Seeds.SM.ASYNC) {
               this._status = Seeds.SM.STATUS_ASYNC;
               this._queue = { exits: states.exits.slice(i+1), entries: states.entries, lca: states.lca };
               return this;
             }
           }
-          this.pub('exit', this.current);
+          args.unshift('exit', this.current);
+          this.pub.apply(this, args);
+          args.splice(0, 2);
         }
       
         /* set common ancestor as current state */
@@ -404,13 +410,15 @@
           this.current = states.entries[i];
           this.context = this.state(states.entries[i]).context;
           if (typeof this.context.enter === 'function') {
-            if (this.context.enter.call(this) === Seeds.SM.ASYNC) {
+            if (this.context.enter.apply(this, args) === Seeds.SM.ASYNC) {
               this._status = Seeds.SM.STATUS_ASYNC;
               this._queue = { exits: [], entries: states.entries.slice(i+1), lca: states.entries[i] };
               return this;
             }
           }
-          this.pub('enter', this.current);
+          args.unshift('enter', this.current);
+          this.pub.apply(this, args);
+          args.splice(0, 2);
         }
 
         this._status = Seeds.SM.STATUS_READY;
@@ -418,13 +426,16 @@
         var defaultSubstate = this.state(this.current).defaultSubstate;
         if (defaultSubstate) {
           /* go to default substate */
-          this.go(defaultSubstate);
+          args.unshift(defaultSubstate);
+          this.go.apply(this, args);
+          args.splice(0, 1);
         } else {
           /* execute 'stay' */
           if (typeof this.context.stay === 'function') {
-            this.context.stay.call(this);
+            this.context.stay.apply(this, args);
           }
-          this.pub('stay', this.current);
+          args.unshift('stay', this.current);
+          this.pub.apply(this, args);
         }
       },
 
@@ -835,3 +846,4 @@
     return Seeds.Lambda.create.apply(Seeds.Lambda, arguments);
   };
 })(this);
+
