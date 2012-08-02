@@ -25,9 +25,21 @@ Backbone.StateRouter = Backbone.Router.extend({
 		if (this.manager) {
 			var router = this;
 			// Attach a listener to the *stay* event in the state manager.
-			this.manager.sub('stay', function(stateName) {
-				var route = router._stateRoutes[stateName];
-				if (route) router.navigate(route);
+			this.manager.sub('enter', function(stateName) {
+				var route = router._stateRoutes[stateName],
+            args = Array.prototype.slice.call(arguments, 1), reg, results;
+
+        if (route) {
+          reg = router._routeToRegExp(route);
+          results = reg.exec(route).slice(1);
+          if (results.length >= 1 && args.length >= 1) {
+            for (var i = 0;  i < results.length; i++) {
+              console.log(results[i], args[i]);
+              route = route.replace(results[i],args[i]);
+            }
+          }
+          router.navigate(route);
+        }
 			});
 			// Attach a listener on all the router events, to see if they match the *route:state:stateName* format.
 			this.on('all', function(route) {
