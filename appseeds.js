@@ -406,7 +406,7 @@
           this.current = states.entries[i];
           this.context = this.state(states.entries[i]).context;
           if (typeof this.context.enter === 'function') {
-            if (this.context.enter() === Seeds.SM.ASYNC) {
+            if (this.context.enter.call(this) === Seeds.SM.ASYNC) {
               this._status = Seeds.SM.STATUS_ASYNC;
               this._queue = { exits: [], entries: states.entries.slice(i+1), lca: states.entries[i], args: args };
               return this;
