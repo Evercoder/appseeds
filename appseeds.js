@@ -367,7 +367,6 @@
       go: function(stateName) {
         var state = this.state(stateName),
             args = Array.prototype.slice.call(arguments, 1) || [];
-        console.log(args);
         if (state === undefined) {
           this.pub('error', 'State ' + stateName + ' not defined');
           return;
@@ -382,7 +381,6 @@
 
       _walk: function(states) {
         var i, action, args = Array.prototype.slice.call(arguments, 1);
-        console.log('_walk', args);
         this._status = Seeds.SM.STATUS_TRANSITIONING;
 
         /* exit to common ancestor */
@@ -390,15 +388,13 @@
           this.current = states.exits[i];
           this.context = this.state(states.exits[i]).context;
           if (typeof this.context.exit === 'function') {
-            if (this.context.exit.apply(this, args) === Seeds.SM.ASYNC) {
+            if (this.context.exit.call(this) === Seeds.SM.ASYNC) {
               this._status = Seeds.SM.STATUS_ASYNC;
-              this._queue = { exits: states.exits.slice(i+1), entries: states.entries, lca: states.lca };
+              this._queue = { exits: states.exits.slice(i+1), entries: states.entries, lca: states.lca, args: args };
               return this;
             }
           }
-          args.unshift('exit', this.current);
-          this.pub.apply(this, args);
-          args.splice(0, 2);
+          this.pub('exit', this.current);
         }
       
         /* set common ancestor as current state */
@@ -410,15 +406,13 @@
           this.current = states.entries[i];
           this.context = this.state(states.entries[i]).context;
           if (typeof this.context.enter === 'function') {
-            if (this.context.enter.apply(this, args) === Seeds.SM.ASYNC) {
+            if (this.context.enter() === Seeds.SM.ASYNC) {
               this._status = Seeds.SM.STATUS_ASYNC;
-              this._queue = { exits: [], entries: states.entries.slice(i+1), lca: states.entries[i] };
+              this._queue = { exits: [], entries: states.entries.slice(i+1), lca: states.entries[i], args: args };
               return this;
             }
           }
-          args.unshift('enter', this.current);
-          this.pub.apply(this, args);
-          args.splice(0, 2);
+          this.pub('enter', this.current);
         }
 
         this._status = Seeds.SM.STATUS_READY;
@@ -428,7 +422,6 @@
           /* go to default substate */
           args.unshift(defaultSubstate);
           this.go.apply(this, args);
-          args.splice(0, 1);
         } else {
           /* execute 'stay' */
           if (typeof this.context.stay === 'function') {
@@ -440,8 +433,12 @@
       },
 
       resume: function() {
+        var args = this._queue.args;
+        delete this._queue.args;
+
         if (this._status === Seeds.SM.STATUS_ASYNC) {
-          this._walk(this._queue);
+          args.unshift(this._queue);
+          this._walk.apply(this, args);
         } else {
           this.pub('error', 'State manager is not paused.');
         }
@@ -846,4 +843,3 @@
     return Seeds.Lambda.create.apply(Seeds.Lambda, arguments);
   };
 })(this);
-
