@@ -631,6 +631,33 @@ asyncTest('StateManager: daisy-chained ASYNC behavior', function() {
   },500);
 });
 
+asyncTest('StateManager: ASYNC behavior with state parameters', function() {
+  expect(2);
+  var sm = Seeds.SM.create('A B C');
+  sm.add('A -> A1 A2 A3');
+
+  sm.when({
+    'A': {
+      enter: function() {
+        window.setTimeout(function() {
+          sm.resume();
+        }, 50);
+        return false;
+      }
+    },
+    'A1': {
+      stay: function() {
+        strictEqual(5, arguments[0], 'arg 0 ok');
+        strictEqual(6, arguments[1], 'arg 1 ok');
+      }
+    }
+  });
+  sm.go('A1', 5, 6);
+  window.setTimeout(function() {
+    start();
+  },200);
+});
+
 /* ------------------------------------------------------------------------ */
 module("Lambda ASYNC");
 asyncTest('Lambda async: delay + reset', function() {
