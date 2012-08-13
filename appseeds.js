@@ -361,9 +361,11 @@
       // Attempting to transition to an inexistent state does nothing and publishes a warning.
       // Likewise, attempting to transition to the same state as the current one will do nothing.
       // 
-      // Parameters:
-      // 
-      //  * *stateName* the name of the state to which to transition
+      //  * **go(stateName, [arg1, [arg2 &hellip; argN]])** 
+      //    * *stateName* the name of the state to which to transition;
+      //    * (optional) any number of additional parameters.
+      //
+      // The additional parameters will be sent as arguments to the *stay* method of the destination state.
       go: function(stateName) {
         var state = this.state(stateName),
             args = Array.prototype.slice.call(arguments, 1) || [];

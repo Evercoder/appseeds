@@ -300,11 +300,13 @@ returning the list of state names that make up the branch.</p>             </td>
 <p>Attempting to transition to an inexistent state does nothing and publishes a warning.
 Likewise, attempting to transition to the same state as the current one will do nothing.</p>
 
-<p>Parameters:</p>
-
 <ul>
-<li><em>stateName</em> the name of the state to which to transition</li>
-</ul>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">go</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">stateName</span><span class="p">)</span> <span class="p">{</span>
+<li><strong>go(stateName, [arg1, [arg2 &hellip; argN]])</strong> 
+<ul><li><em>stateName</em> the name of the state to which to transition;</li>
+<li>(optional) any number of additional parameters.</li></ul></li>
+</ul>
+
+<p>The additional parameters will be sent as arguments to the <em>stay</em> method of the destination state.</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">go</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">stateName</span><span class="p">)</span> <span class="p">{</span>
         <span class="kd">var</span> <span class="nx">state</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">state</span><span class="p">(</span><span class="nx">stateName</span><span class="p">),</span>
             <span class="nx">args</span> <span class="o">=</span> <span class="nb">Array</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">slice</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">arguments</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">||</span> <span class="p">[];</span>
         <span class="k">if</span> <span class="p">(</span><span class="nx">state</span> <span class="o">===</span> <span class="kc">undefined</span><span class="p">)</span> <span class="p">{</span>
