@@ -367,39 +367,29 @@ test("StateManager delegate", function() {
 test("StateManager state transitions with arguments", function() {
   var sm = Seeds.SM.create('A B C')
                 .add('B -> B1');
-  expect(15);
+  expect(6);
   sm.when({
     'A': {
-      enter: function(arg1, arg2, arg3) {
-        strictEqual(arg1, 1, 'argument 1 ok on state A enter');
-        strictEqual(arg2, 2, 'argument 2 ok on state A enter');
-        strictEqual(arg3, 3, 'argument 3 ok on state A enter');
-      },
       stay: function(arg1, arg2, arg3) {
         strictEqual(arg1, 1, 'argument 1 ok on state A stay');
         strictEqual(arg2, 2, 'argument 2 ok on state A stay');
         strictEqual(arg3, 3, 'argument 3 ok on state A stay');
-      },
-      exit: function(arg1, arg2, arg3) {
-        strictEqual(arg1, 4, 'argument 1 ok on state A exit');
-        strictEqual(arg2, 5, 'argument 2 ok on state A exit');
-        strictEqual(arg3, 6, 'argument 3 ok on state A exit');
       }
     },
 
     'B': {
-      enter: function(arg1, arg2, arg3) {
-        strictEqual(arg1, 4, 'argument 1 ok on intermediate state enter');
-        strictEqual(arg2, 5, 'argument 2 ok on intermediate state enter');
-        strictEqual(arg3, 6, 'argument 3 ok on intermediate state enter');
+      stay: function(arg1, arg2, arg3) {
+        strictEqual(arg1, 4, 'should not be here');
+        strictEqual(arg2, 5, 'should not be here');
+        strictEqual(arg3, 6, 'should not be here');
       }
     },
 
     'B1': {
-      enter: function(arg1, arg2, arg3) {
-        strictEqual(arg1, 4, 'argument 1 ok on final state enter');
-        strictEqual(arg2, 5, 'argument 2 ok on final state enter');
-        strictEqual(arg3, 6, 'argument 3 ok on final state enter');
+      stay: function(arg1, arg2, arg3) {
+        strictEqual(arg1, 4, 'argument 1 ok on final state stay');
+        strictEqual(arg2, 5, 'argument 2 ok on final state stay');
+        strictEqual(arg3, 6, 'argument 3 ok on final state stay');
       }
     }
   }).go('A', 1, 2, 3)
