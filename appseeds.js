@@ -537,7 +537,9 @@
         if (this._status !== Seeds.SM.ASYNC) {
           // Don't forget to regenerate the context to current state 
           // after the recursive call ends.
-          this.context = this._act(this.current, arguments);
+          var originalContext = this.context;
+          this._act(this.current, arguments);
+          this.context = originalContext;
         } else {
           this.pub('error', 'State manager is paused, can\'t perform action ' + arguments[0]);
         }
@@ -570,8 +572,7 @@
           if (ret === false) return;
         }
         var parentState = this.state(state).parent;
-        if (parentState) this._act(parentState, args);   
-        return this.context;    
+        if (parentState) this._act(parentState, args);
       },
     
       

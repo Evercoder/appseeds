@@ -122,6 +122,35 @@ test("StateManager.act() bubbling with return values", function() {
   sm.act('action');
 });
 
+test("StateManager act() -- current/context restoration", function() {
+  expect(7);
+  var sm = Seeds.SM.create(['a b c', 'a -> a1 a2 a3', 'a1 -> a11 a12 a13']);
+  sm.when({
+    a: {
+      something: function() {
+        ok('a.something');
+      }
+    },
+    a1: {
+      something: function() {
+        ok('a1.something');
+      }
+    },
+    a11: {
+      something: function() {
+        ok('a11.something');
+      }
+    }
+  });
+
+  sm.go('a11');
+  strictEqual(sm.current, 'a11');
+  strictEqual(sm.context, sm.state(sm.current).context);
+  sm.act('something');
+  strictEqual(sm.current, 'a11');
+  strictEqual(sm.context, sm.state(sm.current).context);  
+});
+
 test("StateManager action()", function() {
   expect(3);
   var sm = Seeds.StateManager.create('A B C');
