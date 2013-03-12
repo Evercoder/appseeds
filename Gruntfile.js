@@ -1,12 +1,6 @@
 /* 
   Grunt.js
   http://gruntjs.com/
-
-  Building appseeds
-  -----------------
-  > npm install -g grunt
-  > npm install -g grunt-docco
-  > node 
 */
 
 module.exports = function(grunt) {
@@ -34,18 +28,34 @@ module.exports = function(grunt) {
         src: 'appseeds.js',
         dest: 'appseeds.min.js'
       },
-      backbone: {
+      plugins: {
         src: 'plugins/backbone-seeds/backbone.seeds.js',
         dest: 'plugins/backbone-seeds/backbone.seeds.min.js'
       }
     },
+
+    /* Docco task */
     docco: {
-      seeds: 'appseeds.js', 
-      plugins: ['plugins/backbone-seeds/backbone.seeds.js']
+
+      /* main appseeds file */
+      seeds: {
+        src: ['appseeds.js'],
+        options: {
+          output: 'docs/'
+        }
+      },
+
+      /* plugin files */
+      plugins: {
+        src: ['plugins/**/*.js'],
+        options: {
+          output: 'docs/'
+        }
+      }
     }
   });
 
   // Default task.
-  grunt.registerTask('default', ['lint', 'uglify', 'qunit', 'docco']);
+  grunt.registerTask('default', ['jslint', 'qunit' ,'uglify', 'docco']);
 
 };
