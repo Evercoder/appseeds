@@ -1,6 +1,20 @@
+/* 
+  Grunt.js
+  http://gruntjs.com/
+
+  Building appseeds
+  -----------------
+  > npm install -g grunt
+  > npm install -g grunt-docco
+  > node 
+*/
+
 module.exports = function(grunt) {
 
   grunt.loadNpmTasks('grunt-docco');
+  grunt.loadNpmTasks('grunt-contrib-uglify');
+  grunt.loadNpmTasks('grunt-contrib-qunit');
+  grunt.loadNpmTasks('grunt-jslint');
 
   // Project configuration.
   grunt.initConfig({
@@ -15,7 +29,7 @@ module.exports = function(grunt) {
     qunit: {
       index: ['test/test.html']
     },
-    min: {
+    uglify: {
       seeds: {
         src: 'appseeds.js',
         dest: 'appseeds.min.js'
@@ -32,6 +46,6 @@ module.exports = function(grunt) {
   });
 
   // Default task.
-  grunt.registerTask('default', 'lint min qunit docco');
+  grunt.registerTask('default', ['lint', 'uglify', 'qunit', 'docco']);
 
 };
