@@ -132,13 +132,15 @@
       //
       //  * **unsub(eventString, method)**
       //    * *eventString* one or more space-separated events;
-      //    * *method* the function to unsubscribe
+      //    * *method* (optional) the function to unsubscribe
+      //
+      // If no *method* is provided, all attached methods will be unsubscribed from the event(s).
       unsub: function(eventStr, method) {
         var events = eventStr.split(/\s+/), event, eventArray, newEventArray, i, j;
         for (i = 0; i < events.length; i++) {
           eventArray = this._pubsubEvents[event = events[i]];
           newEventArray = [];
-          for (j = 0; j < eventArray.length; j++) {
+          for (j = 0; method && j < eventArray.length; j++) {
             if (eventArray[j][0] !== method) {
               newEventArray.push(eventArray[j]);
             }

@@ -491,6 +491,23 @@ test('PubSub.unsub()', function() {
   ps.pub('event1');
 });
 
+test('PubSub.unsub() with no method', function() {
+  expect(0);
+  var ps = Seeds.PS.create();
+  var f1 = function() {
+    ok('you should not see this', 'f1 triggered');
+  };
+  var f2 = function() {
+    ok('you should not see this', 'f1 triggered');
+  };
+  var f3 = function() {
+    ok('you should not see this', 'f1 triggered');
+  };
+  ps.sub('event', f1).sub('event', f2).sub('event', f3);
+  ps.unsub('event');
+
+});
+
 test('PubSub: namespaced events', function() {
   expect(2);
   var ps = Seeds.PubSub.create();
