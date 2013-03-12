@@ -491,6 +491,18 @@ test('PubSub.unsub()', function() {
   ps.pub('event1');
 });
 
+test('PubSub.unsub() with non-subscribed method', function() {
+  expect(1);
+  var ps = Seeds.PS.create();
+  var f1 = function() {
+    ok('yay!', 'f1 triggered');
+  };
+  var f2 = function() {
+    /* no-op */
+  };
+  ps.sub('event', f1).unsub('event', f2).pub('event');
+});
+
 test('PubSub.unsub() with no method', function() {
   expect(0);
   var ps = Seeds.PS.create();
