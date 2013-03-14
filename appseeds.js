@@ -15,14 +15,14 @@
 // It was automatically generated with [docco](http://jashkenas.github.com/docco/). Here goes:
 
 // Encapsulate the library to protect global scope.
-/*globals exports define require console*/
+/*global exports, define, require, console*/
 (function(){
 
   var root = this;
 
   // Export AppSeeds for CommonJS and the browser.
   var AppSeeds, Seeds;
-  if (typeof exports !== 'undefined') {
+  if (exports !== undefined) {
     AppSeeds = Seeds = exports;
   } else {
     AppSeeds = Seeds = root.AppSeeds = root.Seeds = {};
@@ -31,15 +31,9 @@
   // Current version of the application, using [semantic versioning](http://semver.org/).
   Seeds.version = '0.7.0';
 
-  // Polyfills, mostly for IE, around missing Array methods like [indexOf](https://gist.github.com/1034425).
+  // Polyfills, mostly for IE, around missing Array methods.
   if(!Array.isArray) {
     Array.isArray = function (vArg) { return Object.prototype.toString.call(vArg) === "[object Array]"; };
-  }
-  if(!Array.prototype.indexOf) {
-    Array.prototype.indexOf = function(a,b,c){ 
-      for(c=this.length,b=(c+~~b)%c;b<c&&(!(b in this)||this[b]!==a);b++);
-      return b^c?b:-1;
-    };
   }
 
   // Seeds.PubSub
@@ -89,9 +83,11 @@
       
       // Parses the namespaced event string to identify its components.
       _parseEventNamespace: function(event) {
-        var events = [], str = '', ch;
-        for (var i = 0; i < event.length; i++) {
-          if ((ch = event.charAt(i)) === ':') events.push(str);
+        var events = [], str = '', ch, i;
+        for (i = 0; i < event.length; i++) {
+          if ((ch = event.charAt(i)) === ':') {
+            events.push(str);
+          }
           str += ch;
         }
         events.push(str);
@@ -121,8 +117,11 @@
           } else {
             this._pubsubEvents[event] = [[method, thisArg, flags.once]];
           }
-          if (flags.recoup && (oldArgs = this._pubsubHappened[event])) {
-            method.apply(thisArg || this, oldArgs);
+          if (flags.recoup) {
+            oldArgs = this._pubsubHappened[event];
+            if (oldArgs) {
+              method.apply(thisArg || this, oldArgs);
+            }
           }
         }
         return this;
@@ -177,7 +176,9 @@
       // While pub() publishes an event immediately, schedule() returns a scheduled task 
       // which you need to trigger by using `now()`, `delay()` etc.
       schedule: function() {
-        if (!Seeds.Lambda) return null;
+        if (!Seeds.Lambda) {
+          return null;
+        }
         return Seeds.Lambda.create.apply(
           Seeds.Lambda, 
           [this.pub, this].concat(Array.prototype.slice.call(arguments))
@@ -279,7 +280,9 @@
       //
       // Returns the state object.
       state: function(stateName, val) {
-        if (val !== undefined) this._states[stateName] = val;
+        if (val !== undefined) {
+          this._states[stateName] = val;
+        }
         return this._states[stateName];
       },
       
@@ -289,8 +292,8 @@
       // 
       // Returns an array containing the names of the child states.
       children: function(stateName) {
-        var substates = [];
-        for (var i in this._states) {
+        var substates = [], i;
+        for (i in this._states) {
           if (this._states.hasOwnProperty(i) && this._states[i].parent === stateName) {
             substates.push(i);
           }
@@ -311,9 +314,15 @@
     
       // Find the LCA (Lowest Common Ancestor) between two states.
       _lca: function(startState, endState) { 
-        var exits = this._toRoot(startState), entries = this._toRoot(endState), lca;
-        for (var i = 0; i < exits.length; i++) {
-          var idx = entries.indexOf(exits[i]);
+        var exits = this._toRoot(startState), entries = this._toRoot(endState), lca, idx, i, j;
+        for (i = 0; i < exits.length; i++) {
+          idx = -1;
+          for (j = 0; j < entries.length; j++) {
+            if (entries[j] === exits[i]) {
+              idx = j;
+              break;
+            }
+          }
           if (idx !== -1) {
             lca = exits[i];
             exits = exits.slice(0, i);
@@ -345,8 +354,8 @@
             childStates = [];
             break;
         }
-        var pairs = [], childState, defaultSubstateRegex = /^!/;
-        for (var i = 0; i < childStates.length; i++) {
+        var pairs = [], childState, defaultSubstateRegex = /^!/, i;
+        for (i = 0; i < childStates.length; i++) {
           if (childStates[i]) {
             pairs.push([
               parentState, 
@@ -535,7 +544,7 @@
       //  * **act(actionName, [arg1, [arg2, ..., argN]])**
       //    * *actionName* the name of the action;
       //    * *arg1, ... argN* (optional) additional parameters to pass to the action.
-      act: function() {
+      act: function(actionName) {
         if (this._status !== Seeds.SM.ASYNC) {
           // Don't forget to regenerate the context to current state 
           // after the recursive call ends.
@@ -543,7 +552,7 @@
           this._act(this.current, arguments);
           this.context = originalContext;
         } else {
-          this.pub('error', 'State manager is paused, can\'t perform action ' + arguments[0]);
+          this.pub('error', 'State manager is paused, can\'t perform action ' + actionName);
         }
         return this;
       },
@@ -571,10 +580,14 @@
         if (typeof action === 'function') {
           var ret = action.apply(this, Array.prototype.slice.call(args, 1));
           this.pub('act', args[0], state);
-          if (ret === false) return;
+          if (ret === false) {
+            return;
+          }
         }
         var parentState = this.state(state).parent;
-        if (parentState) this._act(parentState, args);
+        if (parentState) {
+          this._act(parentState, args);
+        }
       },
     
       
@@ -635,10 +648,14 @@
                 actions[tmp] = action;
               }
               
-              if (!state.context) state.context = {};
+              if (!state.context) {
+                state.context = {};
+              }
               
               for (i in actions) {
-                if (actions.hasOwnProperty(i)) state.context[i] = actions[i];
+                if (actions.hasOwnProperty(i)) {
+                  state.context[i] = actions[i];
+                }
               }
             }
           }
@@ -712,7 +729,7 @@
         var that = this, f = function() { that.run(); };
         if (this.type === 'delay') {
           this._timerId = window.setTimeout(f, this.period);
-        } else if (this.type == 'interval') {
+        } else if (this.type === 'interval') {
           this._timerId = window.setInterval(f, this.period);
         } else {
           this.run.apply(this, arguments);
@@ -775,13 +792,15 @@
     },
 
     // *mixin* takes an arbitrary number of objects as arguments and mixes them into the first object.
-    mixin: function() {
-      var obj = arguments[0];
-      for (var i = 1; i < arguments.length; i++) {
+    mixin: function(obj) {
+      var i, j;
+      for (i = 1; i < arguments.length; i++) {
         var ext = arguments[i];
         if (ext) {
-          for (var j in ext) {
-            if (ext.hasOwnProperty(j)) obj[j] = ext[j];
+          for (j in ext) {
+            if (ext.hasOwnProperty(j)) {
+              obj[j] = ext[j];
+            }
           }
         }
       }
@@ -847,4 +866,4 @@
   Seeds.f = function() {
     return Seeds.Lambda.create.apply(Seeds.Lambda, arguments);
   };
-})(this);
+}(this));

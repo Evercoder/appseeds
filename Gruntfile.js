@@ -7,18 +7,15 @@ module.exports = function(grunt) {
 
   grunt.loadNpmTasks('grunt-docco');
   grunt.loadNpmTasks('grunt-contrib-uglify');
-  grunt.loadNpmTasks('grunt-contrib-qunit');
+  // grunt.loadNpmTasks('grunt-contrib-qunit');
   grunt.loadNpmTasks('grunt-jslint');
 
   // Project configuration.
   grunt.initConfig({
-    lint: {
-      grunt: 'grunt.js', 
-      seeds: 'appseeds.js', 
-      plugins: ['plugins/backbone-seeds/backbone.seeds.js']
-    },
-    jshint: {
-      options: { browser: true }
+    jslint: {
+      files: ['grunt.js','appseeds.js', 'plugins/backbone-seeds/backbone.seeds.js'],
+      directives: { vars: true, white: true, sloppy: true, plusplus: true, 
+        bitwise: true, nomen: true, todo: true, forin: true, browser: true }
     },
     qunit: {
       index: ['test/test.html']
@@ -56,6 +53,6 @@ module.exports = function(grunt) {
   });
 
   // Default task.
-  grunt.registerTask('default', ['jslint', 'qunit' ,'uglify', 'docco']);
+  grunt.registerTask('default', ['jslint'/*, 'qunit'*/ ,'uglify', 'docco']);
 
 };
