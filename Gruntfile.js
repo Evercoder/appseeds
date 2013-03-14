@@ -15,7 +15,10 @@ module.exports = function(grunt) {
     jslint: {
       files: ['grunt.js','appseeds.js', 'plugins/backbone-seeds/backbone.seeds.js'],
       directives: { vars: true, white: true, sloppy: true, plusplus: true, 
-        bitwise: true, nomen: true, todo: true, forin: true, browser: true }
+        bitwise: true, nomen: true, todo: true, forin: true, browser: true, node: true },
+      options: {
+        failOnError: false // thank you thank you thank you
+      }
     },
     qunit: {
       index: ['test/test.html']

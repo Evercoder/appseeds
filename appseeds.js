@@ -1,6 +1,6 @@
 //     AppSeeds (c) 2012 Dan Burzo
 //     AppSeeds can be freely distributed under the MIT license.
-// Elegant JavaScript components for modern web applications. Made by [@danburzo](https://twitter.com/#!/danburzo).
+// Elegant JavaScript components for modern web applications. Made by [@danburzo](https://twitter.com/danburzo).
 //
 // Fork & contribute at [github.com/danburzo/appseeds](https://github.com/danburzo/appseeds). 
 //
@@ -22,7 +22,7 @@
 
   // Export AppSeeds for CommonJS and the browser.
   var AppSeeds, Seeds;
-  if (exports !== undefined) {
+  if (typeof exports !== 'undefined') {
     AppSeeds = Seeds = exports;
   } else {
     AppSeeds = Seeds = root.AppSeeds = root.Seeds = {};
