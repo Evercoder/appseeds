@@ -16,6 +16,8 @@
 //    });
 //
 //  *sm* and *router* will now be in sync.
+
+/*global Backbone, AppSeeds, Seeds*/
 Backbone.StateRouter = Backbone.Router.extend({
 
   // Set up *Backbone.StateRouter*.
@@ -27,13 +29,13 @@ Backbone.StateRouter = Backbone.Router.extend({
       // Attach a listener to the *stay* event in the state manager.
       this.manager.sub('stay', function(stateName) {
         var route = router._stateRoutes[stateName],
-          args = Array.prototype.slice.call(arguments, 1), reg, results;
+          args = Array.prototype.slice.call(arguments, 1), reg, results, i;
         if (route) {
           reg = router._routeToRegExp(route);
           // TODO exec can potentially return null
           results = reg.exec(route).slice(1);
           if (results.length >= 1 && args.length >= 1) {
-            for (var i = 0; i < results.length; i++) {
+            for (i = 0; i < results.length; i++) {
               route = route.replace(results[i], args[i]);
             }
           }
@@ -42,7 +44,7 @@ Backbone.StateRouter = Backbone.Router.extend({
       });
       // Attach a listener on all the router events, to see if they match the *route:state:stateName* format.
       this.on('all', function(route) {
-        var ret = /^route:state:(.+)/.exec(route), args = Array.prototype.slice.call(arguments, 1) || [];
+        var ret = /^route:state:([a-zA-Z0-9_]+)/.exec(route), args = Array.prototype.slice.call(arguments, 1) || [];
         if (ret) {
           args.unshift(ret[1]);
           this.manager.go.apply(this.manager, args);
@@ -53,8 +55,12 @@ Backbone.StateRouter = Backbone.Router.extend({
   // Overwrite the *route()* method to keep a reference to routes with the name in the *state:stateName* format.
   route: function(route, name) {
     Backbone.Router.prototype.route.apply(this, arguments);
-    var ret = /^state:(.+)/.exec(name);
-    if (!this._stateRoutes) this._stateRoutes = {};
-    if (ret) this._stateRoutes[ret[1]] = route;
+    var ret = /^state:([a-zA-Z0-9_]+)/.exec(name);
+    if (!this._stateRoutes) {
+      this._stateRoutes = {};
+    }
+    if (ret) {
+      this._stateRoutes[ret[1]] = route;
+    }
   }
 });
