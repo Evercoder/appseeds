@@ -749,7 +749,7 @@
 
       // Like *delay*, but also starts the timer.
       delayed: function(timeout) {
-        return this.delay(timeout).start();
+        return this.delay(timeout).reset();
       },
 
       // Repeat the execution of the task at a fixed interval.
@@ -764,7 +764,7 @@
 
       // Like *repeat*, but also starts the timer.
       repeated: function(interval) {
-        return this.repeat(interval).start();
+        return this.repeat(interval).reset();
       },
 
       // Limit the execution frequency of a task.

@@ -789,7 +789,7 @@ it will not be executed with higher frequency than the one imposed by the thrott
 
 </pre></div>             </td>           </tr>                               <tr id="section-50">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-50">&#182;</a>               </div>               <p>Like <em>delay</em>, but also starts the timer.</p>             </td>             <td class="code">               <div class="highlight"><pre>
       <span class="nx">delayed</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">timeout</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">delay</span><span class="p">(</span><span class="nx">timeout</span><span class="p">).</span><span class="nx">start</span><span class="p">();</span>
+        <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">delay</span><span class="p">(</span><span class="nx">timeout</span><span class="p">).</span><span class="nx">reset</span><span class="p">();</span>
       <span class="p">},</span>
 
 </pre></div>             </td>           </tr>                               <tr id="section-51">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-51">&#182;</a>               </div>               <p>Repeat the execution of the task at a fixed interval.</p>
@@ -806,7 +806,7 @@ it will not be executed with higher frequency than the one imposed by the thrott
 
 </pre></div>             </td>           </tr>                               <tr id="section-52">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-52">&#182;</a>               </div>               <p>Like <em>repeat</em>, but also starts the timer.</p>             </td>             <td class="code">               <div class="highlight"><pre>
       <span class="nx">repeated</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">interval</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">repeat</span><span class="p">(</span><span class="nx">interval</span><span class="p">).</span><span class="nx">start</span><span class="p">();</span>
+        <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">repeat</span><span class="p">(</span><span class="nx">interval</span><span class="p">).</span><span class="nx">reset</span><span class="p">();</span>
       <span class="p">},</span>
 
 </pre></div>             </td>           </tr>                               <tr id="section-53">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-53">&#182;</a>               </div>               <p>Limit the execution frequency of a task.</p>

@@ -735,12 +735,47 @@ asyncTest('Lambda async: delay + reset', function() {
   }, 1300);
 });
 
+asyncTest('Lambda async: delayed', function() {
+  expect(1);
+  var schedule = Seeds.Lambda.create(function() {
+    ok('here', 'callback executed!');
+  }).delayed(200);
+  var i = 0;
+  var interval = window.setInterval(function() {
+    if (i++ < 10) schedule.reset();
+  }, 100);
+  
+  window.setTimeout(function() {
+    window.clearInterval(interval);
+    start();
+  }, 1300);
+});
+
 asyncTest('Lambda async: repeat + reset', function() {
   expect(5);
   var schedule = Seeds.Lambda.create(function() {
     ok('here', 'callback executed!');
   });
   schedule.repeat(100);
+  var i = 0;
+  var interval = window.setInterval(function() {
+    if (i++ < 6) schedule.reset();
+  }, 50);
+  window.setTimeout(function() {
+    schedule.stop();
+  }, 890);
+  
+  window.setTimeout(function() {
+    window.clearInterval(interval);
+    start();
+  }, 2000);
+});
+
+asyncTest('Lambda async: repeated', function() {
+  expect(5);
+  var schedule = Seeds.Lambda.create(function() {
+    ok('here', 'callback executed!');
+  }).repeated(100);
   var i = 0;
   var interval = window.setInterval(function() {
     if (i++ < 6) schedule.reset();
